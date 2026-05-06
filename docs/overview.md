@@ -29,7 +29,7 @@
 - LLM이 여러 서버의 tool을 섞어서 사용하는 복합 시나리오 검증
 - 산출물: 2개 이상 MCP 서버를 단일 엔드포인트로 묶는 오케스트레이터
 
-### Phase 4
+### [Phase 4](./phase4.md)
 **멀티 서비스 MCP 연동 + 인증 전파 (Cross-Service Authentication)**
 - 독립적으로 구축된 서비스 A / B / C 각각이 MCP 서버를 보유
 - 서비스 A에서 발급된 인증 토큰을 MCP 요청에 실어 서비스 B로 전파
