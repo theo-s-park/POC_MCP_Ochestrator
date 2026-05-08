@@ -6,6 +6,7 @@ MCP 프로토콜 학습 및 오케스트레이터 구축 프로젝트.
 
 - [학습 과제 개요 및 단계별 계획](./docs/overview.md)
 - [Phase 1 - MCP 서버 구현 및 LLM Tool Calling 검증](./docs/phase1.md)
+- [Phase 2 - 서버/호스트 분리 및 MCP 프로토콜 경유 검증](./docs/phase2.md)
 - [Phase 4 - 멀티 서비스 MCP 연동 및 인증 전파](./docs/phase4.md)
 - [MCP 통신 규약 초안 v0.1](./docs/mcp-communication-spec.md)
 

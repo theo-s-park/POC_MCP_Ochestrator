@@ -16,7 +16,7 @@
 - OpenAI LLM 연결 및 자연어 기반 tool 호출 흐름 확인
 - 산출물: `@Tool` 어노테이션 기반 MCP 서버 + AgentService
 
-### Phase 2
+### [Phase 2](./phase2.md) ✅
 **서버/호스트 분리 → 진짜 MCP 프로토콜 경유**
 - MCP Server 프로젝트 분리
 - MCP Client로 외부 서버에 연결
