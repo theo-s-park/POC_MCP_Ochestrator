@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: mcporchestrator
+  config:
+    import: optional:file:.env.local[.properties]
+
+  ai:
+    mcp:
+      server:
+        enabled: false
+      client:
+        enabled: false
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o-mini
+
+  datasource:
+    url: jdbc:h2:file:./data/mcporchestrator
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+
+mcp:
+  orchestrator:
+    health-check:
+      interval: 60000
+
+logging:
+  level:
+    sevin.mcporchestrator: INFO
