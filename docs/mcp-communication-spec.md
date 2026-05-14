@@ -114,6 +114,25 @@ Content-Type: application/json
 
 ---
 
+### MCP 서버 삭제
+
+등록된 MCP 서버를 제거한다.
+
+**Request**
+```http
+DELETE /api/mcp/servers/{serverId}
+Authorization: Bearer {PAT}
+```
+
+**Response**
+```json
+{
+  "status": "ok"
+}
+```
+
+---
+
 ### MCP 서버 목록 조회
 
 프론트엔드에서 사용 가능한 MCP 서버 목록을 조회한다.

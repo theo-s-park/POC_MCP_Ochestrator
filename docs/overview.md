@@ -23,7 +23,7 @@
 - LLM → MCP Client → HTTP → MCP Server → tool 실행 흐름 검증
 - 산출물: 분리된 MCP Server + MCP Host(Client + LLM)
 
-### Phase 3
+### [Phase 3](./phase3.md) ✅
 **MCP 오케스트레이터 구축**
 - 여러 MCP 서버(내 서버 + 외부 공개 서버) 동시 연결
 - LLM이 여러 서버의 tool을 섞어서 사용하는 복합 시나리오 검증

@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>MCP 오케스트레이터 아키텍처</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d1117;
+    font-family: 'Noto Sans KR', sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 52px 32px 64px;
+    min-height: 100vh;
+  }
+  .diagram { width: 1080px; display: flex; flex-direction: column; gap: 0; }
+
+  .title { text-align: center; color: #e6edf3; font-size: 22px; font-weight: 700; margin-bottom: 44px; }
+  .title span { color: #58a6ff; }
+
+  /* ── 섹션 헤더 ── */
+  .section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+    color: #8b949e; margin-bottom: 10px; text-align: center;
+  }
+
+  /* ── 클라이언트 ── */
+  .client-box {
+    background: #161b22; border: 1.5px solid #30363d; border-radius: 12px;
+    padding: 14px 28px; text-align: center; width: fit-content; margin: 0 auto;
+  }
+  .client-box .name { font-size: 15px; font-weight: 700; color: #c9d1d9; }
+  .client-box .sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #8b949e; margin-top: 4px; }
+
+  /* ── 화살표 공통 ── */
+  .pill {
+    display: inline-block; background: #0d1f38; border: 1px solid #1f3a6e;
+    border-radius: 20px; padding: 4px 14px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #58a6ff;
+  }
+  .pill.green { background: #0d2318; border-color: #1a4a28; color: #3fb950; }
+  .pill.success { background: #0d2318; border-color: #238636; color: #aff5b4; font-weight: 700; }
+
+  .arr-center { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 6px 0; }
+  .vl { width: 2px; }
+  .ah-down { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; }
+  .ah-up { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; }
+  .ah-right { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+
+  /* ── 메인 레이아웃 ── */
+  .main-layout { display: flex; gap: 16px; align-items: flex-start; }
+
+  /* ── 오케스트레이터 ── */
+  .orch-col { flex: 1; display: flex; flex-direction: column; gap: 0; }
+  .orch-box {
+    background: #0d1f38; border: 1.5px solid #1f6feb; border-radius: 14px; padding: 18px 20px;
+  }
+  .orch-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #1f3a6e;
+  }
+  .orch-badge {
+    background: #1f6feb; color: #fff; font-size: 9px; font-weight: 700;
+    letter-spacing: 1px; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;
+  }
+  .orch-name { font-size: 15px; font-weight: 700; color: #cae8ff; }
+  .orch-port { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #58a6ff; margin-left: auto; }
+
+  .steps { display: flex; flex-direction: column; gap: 5px; }
+  .step-row { display: flex; align-items: center; gap: 8px; }
+  .step-box {
+    flex: 1; background: #0a1628; border: 1px solid #1f4070; border-radius: 9px;
+    padding: 10px 14px; display: flex; align-items: center; gap: 11px;
+  }
+  .step-num {
+    background: #1f6feb; color: #fff; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 700; width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step-title { font-size: 12px; font-weight: 700; color: #79c0ff; margin-bottom: 1px; }
+  .step-api { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #8b949e; line-height: 1.5; }
+
+  .sarr { display: flex; align-items: center; gap: 2px; flex-shrink: 0; width: 32px; }
+  .sarr .hl { height: 2px; flex: 1; }
+  .sarr .hh { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+  .sarr-auth .hl { background: #d29922; } .sarr-auth .hh { border-left-color: #d29922; }
+  .sarr-credit .hl { background: #8957e5; } .sarr-credit .hh { border-left-color: #8957e5; }
+  .sarr-none .hl { background: transparent; }
+
+  .step-vconn { display: flex; justify-content: center; padding: 0 18px; }
+  .step-vconn .vl { width: 1px; height: 5px; background: #1f4070; }
+
+  /* ── DB 섹션 ── */
+  .db-section {
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid #1f3a6e;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .db-label-vert {
+    font-size: 9px; color: #58a6ff; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg);
+    opacity: 0.6; margin-right: 2px;
+  }
+  .db-box {
+    background: #0a1420; border: 1px dashed #1f4070; border-radius: 8px;
+    padding: 8px 12px; flex: 1;
+  }
+  .db-box .db-title { font-size: 11px; font-weight: 700; color: #58a6ff; margin-bottom: 6px; }
+  .db-item {
+    display: flex; align-items: baseline; gap: 6px; margin-bottom: 3px; font-size: 10px;
+  }
+  .db-op {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700;
+    padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+  }
+  .db-op.read { background: #0d2318; color: #3fb950; }
+  .db-op.write { background: #1a1228; color: #8957e5; }
+  .db-desc { font-size: 10px; color: #8b949e; }
+
+  /* ── 사이드 서버 ── */
+  .side-col {
+    width: 188px; display: flex; flex-direction: column; gap: 10px;
+    padding-top: 58px;
+  }
+  .side-server { border-radius: 10px; padding: 13px 15px; }
+  .ss-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
+  .ss-name { font-size: 13px; font-weight: 700; margin-bottom: 7px; }
+  .ss-row { font-family: 'JetBrains Mono', monospace; font-size: 9px; line-height: 1.9; }
+  .ss-row .req { } .ss-row .res { opacity: 0.6; }
+  .theme-auth { background: #2d1c0d; border: 1.5px solid #d29922; }
+  .theme-auth .ss-label { color: #d29922; } .theme-auth .ss-name { color: #f0c060; }
+  .theme-auth .ss-row { color: #d29922; }
+  .theme-credit { background: #2d1930; border: 1.5px solid #8957e5; }
+  .theme-credit .ss-label { color: #8957e5; } .theme-credit .ss-name { color: #d2a8ff; }
+  .theme-credit .ss-row { color: #8957e5; }
+
+  /* ── MCP 서버 → 응답 ── */
+  .mcp-section {
+    background: #0d2318; border: 1.5px solid #238636; border-radius: 12px;
+    padding: 16px 18px; margin-top: 10px;
+  }
+  .mcp-section-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  }
+  .mcp-badge {
+    background: #238636; color: #fff; font-size: 9px; font-weight: 700;
+    letter-spacing: 1px; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;
+  }
+  .mcp-section-title { font-size: 13px; font-weight: 700; color: #aff5b4; }
+  .mcp-row { display: flex; gap: 8px; }
+  .mcp-box {
+    background: #091b10; border: 1px solid #238636; border-radius: 8px;
+    padding: 10px 12px; flex: 1;
+  }
+  .mcp-name { font-size: 11px; font-weight: 700; color: #aff5b4; margin-bottom: 6px; }
+  .mcp-tools { display: flex; flex-direction: column; gap: 2px; }
+  .tool-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 8px; color: #3fb950;
+    background: #0d3320; border-radius: 3px; padding: 2px 5px;
+  }
+
+  /* ── 정상 응답 ── */
+  .success-bar {
+    background: #0d2318; border: 1.5px solid #238636; border-radius: 10px;
+    padding: 12px 20px; display: flex; align-items: center; gap: 14px;
+    margin: 0 auto; width: fit-content; margin-top: 0;
+  }
+  .success-icon { font-size: 18px; }
+  .success-text { font-size: 13px; font-weight: 700; color: #aff5b4; }
+  .success-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #3fb950; margin-top: 2px; }
+
+  /* ── 미래 섹션 ── */
+  .future-section {
+    margin-top: 28px;
+    border: 1.5px dashed #30363d;
+    border-radius: 14px;
+    padding: 20px 22px;
+    position: relative;
+  }
+  .future-badge {
+    position: absolute; top: -11px; left: 20px;
+    background: #0d1117; color: #8b949e; font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; padding: 2px 10px;
+    border: 1px solid #30363d; border-radius: 4px;
+  }
+  .future-row { display: flex; gap: 16px; align-items: flex-start; }
+
+  .future-box {
+    flex: 1; border-radius: 10px; padding: 14px 16px;
+  }
+  .fb-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .fb-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .fb-desc { font-size: 11px; color: #8b949e; line-height: 1.6; }
+  .fb-examples { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .fb-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    padding: 2px 7px; border-radius: 3px;
+  }
+
+  .theme-llm { background: #1c1a0d; border: 1.5px dashed #d29922; }
+  .theme-llm .fb-label { color: #d29922; } .theme-llm .fb-title { color: #f0c060; }
+  .theme-llm .fb-tag { background: #2d2808; color: #d29922; }
+
+  .theme-ext-mcp { background: #0d1e2d; border: 1.5px dashed #58a6ff; }
+  .theme-ext-mcp .fb-label { color: #58a6ff; } .theme-ext-mcp .fb-title { color: #a5d6ff; }
+  .theme-ext-mcp .fb-tag { background: #0d2040; color: #58a6ff; }
+
+  .future-conn {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #30363d;
+    display: flex; align-items: center; gap: 4px; padding-top: 40px;
+  }
+
+  /* ── 배포 워크플로우 ── */
+  .deploy {
+    margin-top: 20px; background: #161b22; border: 1px solid #21262d;
+    border-radius: 12px; padding: 16px 20px;
+  }
+  .deploy-title { font-size: 10px; color: #8b949e; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+  .deploy-flow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .dn {
+    border-radius: 8px; padding: 9px 13px; text-align: center;
+  }
+  .dn .dn-l { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .dn .dn-a { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+  .dn .dn-s { font-size: 9px; margin-top: 2px; opacity: 0.6; }
+  .darr { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #3fb950; }
+
+  /* ── 범례 ── */
+  .legend { display: flex; justify-content: center; gap: 22px; margin-top: 28px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #8b949e; }
+  .leg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .leg-dot.dashed { background: transparent; border: 2px dashed; }
+</style>
+</head>
+<body>
+<div class="diagram">
+
+  <div class="title">MCP 오케스트레이터 <span>아키텍처</span></div>
+
+  <!-- 두 진입 경로 -->
+  <div style="display:flex; gap:16px; justify-content:center; align-items:flex-start;">
+
+    <!-- 경로 A: LLM Agent -->
+    <div style="display:flex; flex-direction:column; align-items:center; gap:0; flex:1; max-width:420px;">
+      <div style="background:#1c1a0d; border:1.5px solid #d29922; border-radius:12px; padding:13px 20px; width:100%; text-align:center;">
+        <div style="font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#d29922; margin-bottom:5px;">경로 A — LLM Agent</div>
+        <div style="font-size:13px; font-weight:700; color:#f0c060; margin-bottom:6px;">자연어 → 툴 자동 선택</div>
+        <div style="font-size:10px; color:#8b949e; margin-bottom:8px;">"이 파일 PDF로 바꿔줘" → hwpx_to_pdf 자동 선택</div>
+        <div style="display:flex; gap:5px; justify-content:center; flex-wrap:wrap;">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:9px; padding:2px 7px; border-radius:3px; background:#2d2808; color:#d29922;">Claude API</span>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:9px; padding:2px 7px; border-radius:3px; background:#2d2808; color:#d29922;">OpenAI</span>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:9px; padding:2px 7px; border-radius:3px; background:#2d2808; color:#d29922;">Spring AI</span>
+        </div>
+      </div>
+      <div style="height:16px; width:2px; background:#d29922;"></div>
+      <div style="width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:8px solid #d29922;"></div>
+    </div>
+
+    <!-- 구분선 -->
+    <div style="display:flex; flex-direction:column; align-items:center; padding-top:20px; color:#30363d; font-size:12px; font-family:'JetBrains Mono',monospace; gap:6px;">
+      <div style="width:1px; height:30px; background:#21262d;"></div>
+      <div style="color:#484f58; font-size:10px;">or</div>
+      <div style="width:1px; height:30px; background:#21262d;"></div>
+    </div>
+
+    <!-- 경로 B: 직접 등록 -->
+    <div style="display:flex; flex-direction:column; align-items:center; gap:0; flex:1; max-width:420px;">
+      <div style="background:#0d1e2d; border:1.5px solid #58a6ff; border-radius:12px; padding:13px 20px; width:100%; text-align:center;">
+        <div style="font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#58a6ff; margin-bottom:5px;">경로 B — 직접 연동</div>
+        <div style="font-size:13px; font-weight:700; color:#a5d6ff; margin-bottom:6px;">MCP 툴 목록에서 직접 선택</div>
+        <div style="font-size:10px; color:#8b949e; margin-bottom:8px;">사용할 툴을 지정해서 tools/call 직접 호출</div>
+        <div style="display:flex; gap:5px; justify-content:center; flex-wrap:wrap;">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:9px; padding:2px 7px; border-radius:3px; background:#0d2040; color:#58a6ff;">커스텀 앱</span>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:9px; padding:2px 7px; border-radius:3px; background:#0d2040; color:#58a6ff;">Claude Desktop</span>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:9px; padding:2px 7px; border-radius:3px; background:#0d2040; color:#58a6ff;">Cursor</span>
+        </div>
+      </div>
+      <div style="height:16px; width:2px; background:#58a6ff;"></div>
+      <div style="width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:8px solid #58a6ff;"></div>
+    </div>
+
+  </div>
+
+  <!-- 두 경로 합류 -->
+  <div class="arr-center" style="margin: 6px 0;">
+    <div class="pill">POST /mcp &nbsp;&nbsp; Authorization: Bearer {PAT}</div>
+    <div class="vl" style="height:16px; background:#1f6feb;"></div>
+    <div class="ah-down" style="border-top-color:#1f6feb;"></div>
+  </div>
+
+  <!-- 오케스트레이터 + 사이드 -->
+  <div class="main-layout">
+
+    <!-- 오케스트레이터 컬럼 -->
+    <div class="orch-col">
+      <div class="orch-box">
+        <div class="orch-head">
+          <div class="orch-badge">Orchestrator</div>
+          <div class="orch-name">MCP 오케스트레이터</div>
+          <div class="orch-port">:8080</div>
+        </div>
+
+        <div class="steps">
+          <!-- Step 1 -->
+          <div class="step-row">
+            <div class="step-box">
+              <div class="step-num">1</div>
+              <div>
+                <div class="step-title">PAT 검증</div>
+                <div class="step-api">Bearer Token → 인증 서버 호출 → userId 수신 / 401 차단</div>
+              </div>
+            </div>
+            <div class="sarr sarr-auth"><div class="hl"></div><div class="hh"></div></div>
+          </div>
+          <div class="step-vconn"><div class="vl"></div></div>
+
+          <!-- Step 2 -->
+          <div class="step-row">
+            <div class="step-box">
+              <div class="step-num">2</div>
+              <div>
+                <div class="step-title">툴 라우팅</div>
+                <div class="step-api">DB에서 toolName → serverURL 조회 → body 그대로 MCP 서버로 포워딩</div>
+              </div>
+            </div>
+            <div class="sarr sarr-none"><div class="hl"></div></div>
+          </div>
+          <div class="step-vconn"><div class="vl"></div></div>
+
+          <!-- Step 3 -->
+          <div class="step-row">
+            <div class="step-box">
+              <div class="step-num">3</div>
+              <div>
+                <div class="step-title">크레딧 차감</div>
+                <div class="step-api">MCP 서버 200 응답 수신 → 크레딧 서버 호출 → 차감 완료</div>
+              </div>
+            </div>
+            <div class="sarr sarr-credit"><div class="hl"></div><div class="hh"></div></div>
+          </div>
+        </div>
+
+        <!-- DB 섹션 -->
+        <div class="db-section">
+          <div class="db-label-vert">DB</div>
+          <div class="db-box">
+            <div class="db-title">H2 / RDS</div>
+            <div class="db-item"><span class="db-op read">READ</span><span class="db-desc">toolName → serverURL 라우팅 조회</span></div>
+            <div class="db-item"><span class="db-op read">READ</span><span class="db-desc">서버 상태 (ACTIVE / INACTIVE) 확인</span></div>
+            <div class="db-item"><span class="db-op write">WRITE</span><span class="db-desc">서버 등록 / 삭제</span></div>
+            <div class="db-item"><span class="db-op write">WRITE</span><span class="db-desc">헬스체크 결과 상태 갱신</span></div>
+            <div class="db-item"><span class="db-op write">WRITE</span><span class="db-desc">tools/list 수집 결과 저장</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 아래 화살표 → MCP 서버 -->
+      <div class="arr-center" style="margin: 8px 0;">
+        <div class="vl" style="height:16px; background:#238636;"></div>
+        <div class="ah-down" style="border-top-color:#238636;"></div>
+      </div>
+
+      <!-- MCP 서버 -->
+      <div class="mcp-section">
+        <div class="mcp-section-head">
+          <div class="mcp-badge">MCP Servers</div>
+          <div class="mcp-section-title">연구소 MCP 서버</div>
+        </div>
+        <div class="mcp-row">
+          <div class="mcp-box">
+            <div class="mcp-name">📄 문서 변환 MCP</div>
+            <div class="mcp-tools">
+              <div class="tool-tag">pdf_to_jpg</div>
+              <div class="tool-tag">pdf_compress</div>
+              <div class="tool-tag">pdf_merge</div>
+              <div class="tool-tag">pdf_extract</div>
+            </div>
+          </div>
+          <div class="mcp-box">
+            <div class="mcp-name">📝 HWP MCP</div>
+            <div class="mcp-tools">
+              <div class="tool-tag">hwp_to_hwpx</div>
+              <div class="tool-tag">hwpx_to_hwp</div>
+              <div class="tool-tag">hwpx_to_pdf</div>
+              <div class="tool-tag">hwpx_extract</div>
+            </div>
+          </div>
+          <div class="mcp-box">
+            <div class="mcp-name">📃 Word MCP</div>
+            <div class="mcp-tools">
+              <div class="tool-tag">word_to_pdf</div>
+              <div class="tool-tag">word_extract</div>
+            </div>
+          </div>
+          <div class="mcp-box">
+            <div class="mcp-name">🎨 AI 이미지 MCP</div>
+            <div class="mcp-tools">
+              <div class="tool-tag">ai_upscale</div>
+              <div class="tool-tag">ai_bg_remove</div>
+              <div class="tool-tag">ai_wordcloud</div>
+              <div class="tool-tag">qr_generate</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 정상 응답 화살표 -->
+      <div class="arr-center" style="margin: 8px 0;">
+        <div class="vl" style="height:16px; background:#238636;"></div>
+        <div class="ah-up" style="border-bottom-color:#238636;"></div>
+        <div class="vl" style="height:6px; background:#238636;"></div>
+        <div class="pill green" style="margin: 4px 0;">200 OK — 결과 반환</div>
+        <div class="vl" style="height:6px; background:#238636;"></div>
+        <div class="ah-up" style="border-bottom-color:#1f6feb;"></div>
+        <div class="vl" style="height:16px; background:#1f6feb;"></div>
+      </div>
+
+      <!-- 정상 응답 도착 -->
+      <div class="success-bar">
+        <div class="success-icon">✅</div>
+        <div>
+          <div class="success-text">서비스 이용 완료</div>
+          <div class="success-sub">PAT 유효 · 크레딧 차감 · 결과 수신</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 사이드 서버 -->
+    <div class="side-col">
+      <div class="side-server theme-auth">
+        <div class="ss-label">PO 인증 서버</div>
+        <div class="ss-name">인증 서버</div>
+        <div class="ss-row">
+          <div class="req">GET /auth/validate</div>
+          <div class="req">→ Bearer {PAT}</div>
+          <div class="res">← 200 {userId}</div>
+          <div class="res">← 401 Unauthorized</div>
+        </div>
+      </div>
+
+      <!-- Step 2 높이만큼 간격 (step-box + vconn) -->
+      <div style="height: 56px;"></div>
+
+      <div class="side-server theme-credit">
+        <div class="ss-label">크레딧 서버</div>
+        <div class="ss-name">크레딧 서버</div>
+        <div class="ss-row">
+          <div class="req">POST /credits/deduct</div>
+          <div class="req">→ {userId, toolId}</div>
+          <div class="res">← 200 OK</div>
+          <div class="res">← 402 잔액 부족</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 미래 확장 섹션 -->
+  <div class="future-section">
+    <div class="future-badge">Future — 추후 연동 예정</div>
+    <div class="future-row">
+      <div class="future-box theme-ext-mcp">
+        <div class="fb-label">상용 / 외부 MCP</div>
+        <div class="fb-title">외부 MCP 서버 연동</div>
+        <div class="fb-desc">
+          세상에 이미 존재하는 공개 MCP 서버를 오케스트레이터에 URL 하나로 등록.<br>
+          stdio 방식은 Node.js 브릿지로 HTTP 변환 후 등록.
+        </div>
+        <div class="fb-examples">
+          <div class="fb-tag">Playwright MCP</div>
+          <div class="fb-tag">GitHub MCP</div>
+          <div class="fb-tag">Slack MCP</div>
+          <div class="fb-tag">기타 공개 MCP</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 배포 워크플로우 -->
+  <div class="deploy">
+    <div class="deploy-title">새 MCP 서버 배포 시 — Deploy Workflow</div>
+    <div class="deploy-flow">
+      <div class="dn" style="background:#21262d; border:1px solid #30363d;">
+        <div class="dn-l" style="color:#8b949e;">CI/CD</div>
+        <div class="dn-a" style="color:#e6edf3;">빌드 + 배포</div>
+      </div>
+      <div class="darr">→ success →</div>
+      <div class="dn" style="background:#0d1f38; border:1px solid #1f6feb;">
+        <div class="dn-l" style="color:#58a6ff;">오케스트레이터</div>
+        <div class="dn-a" style="color:#cae8ff;">POST /servers/register</div>
+        <div class="dn-s" style="color:#58a6ff;">→ tools/list 자동 수집 + DB 저장</div>
+      </div>
+      <div class="darr">+</div>
+      <div class="dn" style="background:#2d1930; border:1px solid #8957e5;">
+        <div class="dn-l" style="color:#8957e5;">크레딧 서버</div>
+        <div class="dn-a" style="color:#d2a8ff;">POST /credits/tools/register</div>
+        <div class="dn-s" style="color:#8957e5;">toolId별 단가 등록</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 범례 -->
+  <div class="legend">
+    <div class="legend-item"><div class="leg-dot" style="background:#1f6feb;"></div>오케스트레이터 (Theo)</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#238636;"></div>연구소 MCP 서버</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#d29922;"></div>PO 인증 서버</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#8957e5;"></div>크레딧 서버</div>
+    <div class="legend-item"><div class="leg-dot dashed" style="border-color:#58a6ff;"></div>추후 연동 예정</div>
+  </div>
+
+</div>
+</body>
+</html>
