@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Agent Chat — MCP Orchestrator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070809;--surface:#0e1015;--surface2:#13161e;--surface3:#1a1e28;
+  --border:rgba(255,255,255,0.06);--border-hi:rgba(255,255,255,0.13);
+  --text:#dde3ec;--muted:#5a6478;--subtle:#2a303d;
+  --accent:#00e5a0;--accent-d:rgba(0,229,160,0.12);
+  --blue:#4d9cff;--blue-d:rgba(77,156,255,0.12);
+  --amber:#f5a623;--red:#ff5f5f;
+  --sidebar-w:228px;--radius:10px;
+  --font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;display:flex;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radial-gradient(circle,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:28px 28px}
+.sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
+.sidebar-logo{padding:28px 24px 24px;font-family:var(--font-head);font-size:22px;font-weight:800;letter-spacing:-.5px}
+.sidebar-logo span{color:var(--accent)}
+.sidebar-divider{height:1px;background:var(--border);margin:0 16px 12px}
+.nav-section{padding:0 12px;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent-d);color:var(--accent)}
+.nav-icon{width:16px;height:16px;flex-shrink:0}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.token-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.token-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-family:var(--font-mono);font-size:11px;outline:none;transition:border .15s}
+.token-input:focus{border-color:var(--accent)}
+
+.main{margin-left:var(--sidebar-w);flex:1;padding:36px 40px;display:flex;flex-direction:column;max-width:960px}
+.page-title{font-family:var(--font-head);font-size:28px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px}
+.page-subtitle{color:var(--muted);font-size:13px;margin-bottom:32px}
+
+/* ── Input area ── */
+.chat-input-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:24px;transition:border-color .2s}
+.chat-input-wrap:focus-within{border-color:var(--accent)}
+.chat-textarea{width:100%;background:transparent;border:none;outline:none;padding:18px 20px;color:var(--text);font-family:var(--font-body);font-size:14px;resize:none;min-height:100px;line-height:1.6}
+.chat-textarea::placeholder{color:var(--subtle)}
+.chat-input-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.chat-hint{font-size:11px;color:var(--muted)}
+.btn-send{display:inline-flex;align-items:center;gap:6px;padding:8px 20px;background:var(--accent);color:#051a12;border:none;border-radius:7px;font-size:13px;font-weight:600;font-family:var(--font-head);cursor:pointer;transition:all .15s;letter-spacing:.03em}
+.btn-send:hover:not(:disabled){background:#00ffb2;box-shadow:0 4px 20px rgba(0,229,160,.3);transform:translateY(-1px)}
+.btn-send:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── Response card ── */
+.response-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.response-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.session-badge{font-family:var(--font-mono);font-size:11px;background:var(--accent-d);color:var(--accent);padding:3px 8px;border-radius:4px;letter-spacing:.04em}
+.response-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.response-body{padding:20px;line-height:1.7;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.response-body.thinking{color:var(--muted);font-style:italic}
+
+/* ── Tool trace ── */
+.trace-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.trace-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.trace-title{font-family:var(--font-head);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.trace-count{font-family:var(--font-mono);font-size:11px;background:var(--blue-d);color:var(--blue);padding:2px 7px;border-radius:4px}
+.trace-toggle{font-size:11px;color:var(--muted)}
+.trace-list{padding:0}
+.trace-item{border-bottom:1px solid var(--border);last-child{border-bottom:none}}
+.trace-item:last-child{border-bottom:none}
+.trace-item-header{padding:12px 20px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;transition:background .15s}
+.trace-item-header:hover{background:var(--surface2)}
+.trace-step{width:20px;height:20px;border-radius:50%;background:var(--surface3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;color:var(--muted);flex-shrink:0}
+.trace-tool-name{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--accent);flex:1}
+.trace-server-name{font-size:11px;color:var(--muted)}
+.trace-chevron{font-size:10px;color:var(--subtle);transition:transform .2s}
+.trace-chevron.open{transform:rotate(90deg)}
+.trace-detail{display:none;padding:0 20px 16px;gap:12px;flex-direction:column}
+.trace-detail.open{display:flex}
+.trace-block-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+.trace-block-body{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:10px 14px;font-family:var(--font-mono);font-size:11px;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-all;max-height:220px;overflow-y:auto}
+.trace-block-body.args{color:var(--blue)}
+.trace-block-body.result{color:var(--accent)}
+
+/* ── Empty / loading ── */
+.empty-state{padding:60px 20px;text-align:center;color:var(--muted)}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:.3}
+.empty-text{font-size:13px;opacity:.5}
+
+/* ── Spinner ── */
+.spinner{display:inline-flex;gap:4px;align-items:center}
+.spinner span{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:bounce 1.2s infinite}
+.spinner span:nth-child(2){animation-delay:.2s}
+.spinner span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:scale(0.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">MCP<span>orch</span></div>
+  <div class="sidebar-divider"></div>
+  <nav class="nav-section">
+    <a href="/" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Servers
+    </a>
+    <a href="/tools" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Tools
+    </a>
+    <a href="/demo" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Agent Demo
+    </a>
+    <a href="/agent" class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 7v2M12 11h.01"/></svg>Agent Chat
+    </a>
+    <a href="/backoffice" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Backoffice
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="token-label">Token</div>
+    <input id="globalToken" class="token-input" value="test-token-123">
+  </div>
+</aside>
+
+<main class="main">
+  <h1 class="page-title">Agent Chat</h1>
+  <p class="page-subtitle">Ask in natural language — the LLM picks and chains the right tools automatically</p>
+
+  <div class="chat-input-wrap">
+    <textarea id="questionInput" class="chat-textarea" placeholder="e.g. 오늘 서울 날씨 알려줘, or generate a random UUID and tell me its length" rows="3"></textarea>
+    <div class="chat-input-footer">
+      <span class="chat-hint">Ctrl+Enter to send</span>
+      <button class="btn-send" id="sendBtn" onclick="sendQuestion()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Send
+      </button>
+    </div>
+  </div>
+
+  <div id="outputArea"></div>
+</main>
+
+<script>
+document.getElementById('questionInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendQuestion();
+});
+
+async function sendQuestion() {
+  const q = document.getElementById('questionInput').value.trim();
+  if (!q) return;
+
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"><span></span><span></span><span></span></span>';
+
+  const out = document.getElementById('outputArea');
+  // Insert a thinking card at the top
+  const thinkId = 'think_' + Date.now();
+  out.insertAdjacentHTML('afterbegin', `
+    <div class="response-card" id="${thinkId}">
+      <div class="response-header">
+        <span class="response-label">Processing</span>
+      </div>
+      <div class="response-body thinking">
+        <span class="spinner"><span></span><span></span><span></span></span>
+        &nbsp; Thinking...
+      </div>
+    </div>
+  `);
+
+  try {
+    const res = await fetch('/agent/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q })
+    });
+    const data = await res.json();
+    document.getElementById(thinkId)?.remove();
+    renderResponse(data, q);
+  } catch (e) {
+    document.getElementById(thinkId)?.remove();
+    renderError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send';
+  }
+}
+
+function renderResponse(data, question) {
+  const out = document.getElementById('outputArea');
+  const traceHtml = buildTraceHtml(data.trace || []);
+  const card = document.createElement('div');
+  card.innerHTML = `
+    <div class="response-card">
+      <div class="response-header">
+        <span class="response-label">Answer</span>
+        <span class="session-badge">${escHtml(data.sessionId || '')}</span>
+      </div>
+      <div class="response-body">${escHtml(data.answer || '')}</div>
+    </div>
+    ${traceHtml}
+  `;
+  out.insertAdjacentElement('afterbegin', card);
+}
+
+function buildTraceHtml(trace) {
+  if (!Array.isArray(trace) || !trace.length) return '';
+  const items = trace.map((t, i) => `
+    <div class="trace-item">
+      <div class="trace-item-header" onclick="toggleTrace(this)">
+        <div class="trace-step">${i + 1}</div>
+        <div class="trace-tool-name">${escHtml(t.toolName)}</div>
+        <div class="trace-server-name">${escHtml(t.server)}</div>
+        <span class="trace-chevron">▶</span>
+      </div>
+      <div class="trace-detail">
+        <div>
+          <div class="trace-block-label">Arguments</div>
+          <div class="trace-block-body args">${fmtJson(t.args)}</div>
+        </div>
+        <div>
+          <div class="trace-block-label">Result</div>
+          <div class="trace-block-body result">${fmtJson(t.result)}</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <div class="trace-section" style="margin-bottom:24px;animation:fadeIn .3s ease">
+      <div class="trace-header">
+        <div class="trace-title" onclick="toggleTraceSection(this.closest('.trace-section').querySelector('.trace-header'))" style="cursor:pointer;flex:1">
+          Tool Trace
+          <span class="trace-count">${trace.length} call${trace.length !== 1 ? 's' : ''}</span>
+        </div>
+        <button onclick="copyTrace(this, ${JSON.stringify(trace).replace(/"/g, '&quot;')})" style="background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:11px;font-family:var(--font-mono);padding:3px 10px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--border-hi)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">copy</button>
+        <span class="trace-toggle" onclick="toggleTraceSection(this.closest('.trace-header'))" style="cursor:pointer;margin-left:12px">▾ collapse</span>
+      </div>
+      <div class="trace-list">${items}</div>
+    </div>
+  `;
+}
+
+function toggleTrace(header) {
+  const detail = header.nextElementSibling;
+  const chevron = header.querySelector('.trace-chevron');
+  detail.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+
+function toggleTraceSection(header) {
+  const section = header.closest('.trace-section') || header.parentElement;
+  const list = section.querySelector('.trace-list');
+  const toggle = section.querySelector('.trace-toggle');
+  const isHidden = list.style.display === 'none';
+  list.style.display = isHidden ? '' : 'none';
+  toggle.textContent = isHidden ? '▾ collapse' : '▸ expand';
+}
+
+function renderError(msg) {
+  document.getElementById('outputArea').insertAdjacentHTML('afterbegin', `
+    <div class="response-card" style="border-color:rgba(255,95,95,.3);animation:fadeIn .3s ease;margin-bottom:16px">
+      <div class="response-header">
+        <span style="font-size:11px;color:var(--red);text-transform:uppercase;letter-spacing:.07em">Error</span>
+      </div>
+      <div class="response-body" style="color:var(--red)">${escHtml(msg)}</div>
+    </div>
+  `);
+}
+
+function fmtJson(raw) {
+  if (!raw) return '—';
+  try {
+    return escHtml(JSON.stringify(JSON.parse(raw), null, 2));
+  } catch {
+    return escHtml(raw);
+  }
+}
+
+function copyTrace(btn, trace) {
+  const text = JSON.stringify(trace, null, 2);
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'copied!';
+    btn.style.color = 'var(--accent)';
+    btn.style.borderColor = 'var(--accent)';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; btn.style.borderColor = ''; }, 1500);
+  });
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

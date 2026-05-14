@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Servers — MCP Orchestrator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #070809;
+  --surface:   #0e1015;
+  --surface2:  #13161e;
+  --surface3:  #1a1e28;
+  --border:    rgba(255,255,255,0.06);
+  --border-hi: rgba(255,255,255,0.13);
+  --text:      #dde3ec;
+  --muted:     #5a6478;
+  --subtle:    #2a303d;
+  --accent:    #00e5a0;
+  --accent-d:  rgba(0,229,160,0.12);
+  --blue:      #4d9cff;
+  --blue-d:    rgba(77,156,255,0.12);
+  --amber:     #f5a623;
+  --red:       #ff5f5f;
+  --sidebar-w: 228px;
+  --radius:    10px;
+  --font-head: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; display: flex; min-height: 100vh; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: var(--sidebar-w); min-height: 100vh; background: var(--surface);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; z-index: 100;
+}
+.sidebar-logo {
+  padding: 28px 24px 24px; font-family: var(--font-head); font-size: 22px;
+  font-weight: 800; letter-spacing: -0.5px; color: var(--text);
+}
+.sidebar-logo span { color: var(--accent); }
+.sidebar-divider { height: 1px; background: var(--border); margin: 0 16px 12px; }
+.nav-section { padding: 0 12px; flex: 1; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border-radius: 7px; text-decoration: none; color: var(--muted);
+  font-size: 13px; font-weight: 500; transition: all .15s; margin-bottom: 2px;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: var(--accent-d); color: var(--accent); }
+.nav-icon { width: 16px; height: 16px; opacity: .8; flex-shrink: 0; }
+.sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+.token-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+.token-input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 10px; color: var(--text); font-family: var(--font-mono);
+  font-size: 11px; outline: none; transition: border .15s;
+}
+.token-input:focus { border-color: var(--accent); }
+
+/* ── Main ── */
+.main { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; padding: 36px 40px; max-width: 1100px; }
+
+/* Dot grid background */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -1;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ── Page header ── */
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; }
+.page-title { font-family: var(--font-head); font-size: 28px; font-weight: 700; letter-spacing: -.5px; }
+.page-subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px;
+  border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+  border: none; transition: all .15s; text-decoration: none; font-family: var(--font-body);
+}
+.btn-primary { background: var(--accent); color: #051a12; }
+.btn-primary:hover { background: #00ffb2; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,229,160,.3); }
+.btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+.btn-ghost:hover { border-color: var(--border-hi); color: var(--text); }
+.btn-danger { background: transparent; color: var(--red); border: 1px solid rgba(255,95,95,.2); padding: 5px 12px; font-size: 12px; }
+.btn-danger:hover { background: rgba(255,95,95,.1); }
+
+/* ── Register panel ── */
+.register-panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; max-height: 0; transition: max-height .3s ease, padding .3s ease;
+  margin-bottom: 0;
+}
+.register-panel.open { max-height: 200px; margin-bottom: 24px; }
+.register-inner { padding: 24px; }
+.register-title { font-family: var(--font-head); font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1.5fr 1fr .6fr auto; gap: 10px; align-items: end; }
+.form-group label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 5px; }
+.form-input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 7px; padding: 9px 12px; color: var(--text); font-size: 13px;
+  outline: none; transition: border .15s; font-family: var(--font-body);
+}
+.form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-d); }
+.form-input::placeholder { color: var(--subtle); }
+.register-msg { margin-top: 10px; font-size: 12px; }
+.msg-ok { color: var(--accent); }
+.msg-err { color: var(--red); }
+
+/* ── Server grid ── */
+.grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.grid-title { font-family: var(--font-head); font-size: 15px; font-weight: 600; }
+.server-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+
+/* ── Server card ── */
+.server-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; display: flex; flex-direction: column; gap: 14px;
+  transition: border-color .2s, transform .2s; position: relative; overflow: hidden;
+}
+.server-card:hover { border-color: var(--border-hi); transform: translateY(-2px); }
+.server-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--blue)); opacity: 0;
+  transition: opacity .2s;
+}
+.server-card:hover::before { opacity: 1; }
+
+.card-top { display: flex; align-items: center; justify-content: space-between; }
+.card-name { font-family: var(--font-head); font-size: 16px; font-weight: 600; }
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--muted);
+}
+.status-dot.active { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-d); animation: pulse 2s infinite; }
+.status-dot.pending { background: var(--amber); }
+.status-dot.inactive { background: var(--red); }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px var(--accent-d); } 50% { box-shadow: 0 0 0 6px transparent; } }
+
+.status-badge {
+  font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.status-badge.active { background: var(--accent-d); color: var(--accent); }
+.status-badge.pending { background: rgba(245,166,35,.12); color: var(--amber); }
+.status-badge.inactive { background: rgba(255,95,95,.12); color: var(--red); }
+
+.card-url { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+
+.card-tools { display: flex; flex-wrap: wrap; gap: 6px; min-height: 22px; }
+.tool-badge {
+  font-family: var(--font-mono); font-size: 11px; padding: 3px 9px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--blue);
+}
+
+.card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
+.card-time { font-size: 11px; color: var(--muted); }
+
+/* ── Empty state ── */
+.empty-state {
+  grid-column: 1/-1; padding: 60px 20px; text-align: center;
+  color: var(--muted); border: 1px dashed var(--border); border-radius: var(--radius);
+}
+.empty-icon { font-size: 32px; margin-bottom: 12px; opacity: .4; }
+.empty-title { font-family: var(--font-head); font-size: 16px; margin-bottom: 6px; color: var(--text); opacity: .4; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px;
+  font-size: 13px; transform: translateY(80px); opacity: 0; transition: all .25s;
+  z-index: 999; max-width: 320px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.ok { border-left: 3px solid var(--accent); }
+.toast.err { border-left: 3px solid var(--red); }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">MCP<span>orch</span></div>
+  <div class="sidebar-divider"></div>
+  <nav class="nav-section">
+    <a href="/" class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Servers
+    </a>
+    <a href="/tools" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+      Tools
+    </a>
+    <a href="/demo" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Agent Demo
+    </a>
+    <a href="/agent" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 7v2M12 11h.01"/></svg>
+      Agent Chat
+    </a>
+    <a href="/backoffice" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Backoffice
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="token-label">Token</div>
+    <input id="globalToken" class="token-input" value="test-token-123">
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Servers</h1>
+      <p class="page-subtitle">Registered MCP servers and their status</p>
+    </div>
+    <button class="btn btn-primary" onclick="toggleForm()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Register Server
+    </button>
+  </div>
+
+  <!-- Register panel -->
+  <div class="register-panel" id="registerPanel">
+    <div class="register-inner">
+      <div class="register-title">New MCP Server</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Name</label><input id="rName" class="form-input" placeholder="image-tool"></div>
+        <div class="form-group"><label>URL</label><input id="rUrl" class="form-input" placeholder="http://localhost:8081"></div>
+        <div class="form-group"><label>Description</label><input id="rDesc" class="form-input" placeholder="optional"></div>
+        <div class="form-group"><label>Version</label><input id="rVer" class="form-input" value="0.0.1"></div>
+        <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="register()" style="width:100%">Register</button></div>
+      </div>
+      <div id="registerMsg" class="register-msg"></div>
+    </div>
+  </div>
+
+  <!-- Server list -->
+  <div class="grid-header">
+    <div class="grid-title">Registered Servers</div>
+    <button class="btn btn-ghost" onclick="load()" style="padding:7px 14px;font-size:12px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
+  <div class="server-grid" id="serverGrid"></div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TOKEN = () => document.getElementById('globalToken').value;
+let formOpen = false;
+
+function toggleForm() {
+  formOpen = !formOpen;
+  document.getElementById('registerPanel').classList.toggle('open', formOpen);
+}
+
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function timeAgo(iso) {
+  const d = Math.round((Date.now() - new Date(iso)) / 1000);
+  if (d < 60) return `${d}s ago`;
+  if (d < 3600) return `${Math.floor(d/60)}m ago`;
+  return `${Math.floor(d/3600)}h ago`;
+}
+
+async function load() {
+  const res = await fetch('/api/mcp/servers', { headers: { 'X-Mcp-Token': TOKEN() } });
+  const { servers } = await res.json();
+  const grid = document.getElementById('serverGrid');
+
+  if (!servers.length) {
+    grid.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">⬡</div>
+      <div class="empty-title">No servers registered</div>
+      <div style="font-size:12px;margin-top:4px">Register your first MCP server above</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = servers.map(s => {
+    const st = s.status.toLowerCase();
+    const tools = (s.tools||[]).map(t => `<span class="tool-badge">${t.name}</span>`).join('');
+    return `
+    <div class="server-card">
+      <div class="card-top">
+        <span class="card-name">${s.name}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="status-badge ${st}">${s.status}</span>
+          <div class="status-dot ${st}"></div>
+        </div>
+      </div>
+      <div class="card-url">${s.url}</div>
+      <div class="card-tools">${tools || '<span style="font-size:11px;color:var(--muted)">no tools</span>'}</div>
+      <div class="card-footer">
+        <span class="card-time">${timeAgo(s.registeredAt)}</span>
+        <button class="btn btn-danger" onclick="del('${s.id}','${s.name}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function register() {
+  const body = { name: document.getElementById('rName').value, url: document.getElementById('rUrl').value, description: document.getElementById('rDesc').value, version: document.getElementById('rVer').value };
+  const msg = document.getElementById('registerMsg');
+  if (!body.name || !body.url) { msg.innerHTML = '<span class="msg-err">Name and URL are required.</span>'; return; }
+  const res = await fetch('/api/mcp/servers/register', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Mcp-Token': TOKEN() }, body: JSON.stringify(body) });
+  const data = await res.json();
+  msg.innerHTML = `<span class="msg-ok">Registered — ${data.serverId}</span>`;
+  toast(`${body.name} registered successfully`);
+  load();
+}
+
+async function del(id, name) {
+  if (!confirm(`Delete "${name}"?`)) return;
+  await fetch(`/api/mcp/servers/${id}`, { method: 'DELETE', headers: { 'X-Mcp-Token': TOKEN() } });
+  toast(`${name} deleted`, 'err'); load();
+}
+
+load();
+setInterval(load, 15000);
+</script>
+</body>
+</html>

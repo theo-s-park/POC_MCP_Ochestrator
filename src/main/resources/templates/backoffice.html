@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Backoffice — MCP Orchestrator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#070809; --surface:#0e1015; --surface2:#13161e; --surface3:#1a1e28;
+  --border:rgba(255,255,255,0.06); --border-hi:rgba(255,255,255,0.13);
+  --text:#dde3ec; --muted:#5a6478; --subtle:#2a303d;
+  --accent:#00e5a0; --accent-d:rgba(0,229,160,0.12);
+  --blue:#4d9cff; --blue-d:rgba(77,156,255,0.12);
+  --amber:#f5a623; --red:#ff5f5f;
+  --sidebar-w:228px; --radius:10px;
+  --font-head:'Syne',sans-serif; --font-body:'DM Sans',sans-serif; --font-mono:'JetBrains Mono',monospace;
+}
+body { background:var(--bg); color:var(--text); font-family:var(--font-body); font-size:14px; display:flex; min-height:100vh; }
+body::before {
+  content:''; position:fixed; inset:0; z-index:-1;
+  background-image:radial-gradient(circle,rgba(255,255,255,0.035) 1px,transparent 1px);
+  background-size:28px 28px;
+}
+.sidebar { width:var(--sidebar-w); min-height:100vh; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; position:fixed; top:0; left:0; z-index:100; }
+.sidebar-logo { padding:28px 24px 24px; font-family:var(--font-head); font-size:22px; font-weight:800; letter-spacing:-.5px; }
+.sidebar-logo span { color:var(--accent); }
+.sidebar-divider { height:1px; background:var(--border); margin:0 16px 12px; }
+.nav-section { padding:0 12px; flex:1; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:7px; text-decoration:none; color:var(--muted); font-size:13px; font-weight:500; transition:all .15s; margin-bottom:2px; }
+.nav-item:hover { background:var(--surface2); color:var(--text); }
+.nav-item.active { background:var(--accent-d); color:var(--accent); }
+.nav-icon { width:16px; height:16px; flex-shrink:0; }
+.main { margin-left:var(--sidebar-w); flex:1; padding:36px 40px; max-width:1100px; }
+.page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:32px; }
+.page-title { font-family:var(--font-head); font-size:28px; font-weight:700; letter-spacing:-.5px; }
+.page-subtitle { color:var(--muted); font-size:13px; margin-top:4px; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; border:none; transition:all .15s; font-family:var(--font-body); }
+.btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border); }
+.btn-ghost:hover { border-color:var(--border-hi); color:var(--text); }
+.btn-accent { background:var(--accent-d); color:var(--accent); border:1px solid rgba(0,229,160,.2); }
+.btn-accent:hover { background:rgba(0,229,160,.2); }
+
+/* App cards */
+.app-list { display:flex; flex-direction:column; gap:16px; }
+.app-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.app-card-header { padding:18px 20px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border); }
+.status-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); flex-shrink:0; }
+.status-dot.active { background:var(--accent); box-shadow:0 0 0 3px var(--accent-d); }
+.status-dot.registration_failed { background:var(--red); }
+.server-name { font-family:var(--font-head); font-size:16px; font-weight:700; }
+.server-url { font-family:var(--font-mono); font-size:11px; color:var(--muted); }
+.visible-badge { margin-left:auto; font-size:11px; padding:2px 8px; border-radius:4px; }
+.visible-badge.on { background:var(--accent-d); color:var(--accent); }
+.visible-badge.off { background:var(--subtle); color:var(--muted); }
+.app-form { padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field.full { grid-column:1/-1; }
+.field label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+.field input, .field textarea { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 12px; color:var(--text); font-family:var(--font-body); font-size:13px; outline:none; transition:border .15s; }
+.field input:focus, .field textarea:focus { border-color:var(--accent); }
+.field textarea { resize:vertical; min-height:72px; }
+.toggle-row { display:flex; align-items:center; gap:10px; }
+.toggle { position:relative; width:36px; height:20px; }
+.toggle input { opacity:0; width:0; height:0; }
+.toggle-slider { position:absolute; inset:0; background:var(--subtle); border-radius:20px; cursor:pointer; transition:.2s; }
+.toggle input:checked + .toggle-slider { background:var(--accent); }
+.toggle-slider::before { content:''; position:absolute; height:14px; width:14px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.2s; }
+.toggle input:checked + .toggle-slider::before { transform:translateX(16px); }
+.app-footer { padding:12px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; }
+.save-msg { font-size:12px; color:var(--accent); align-self:center; opacity:0; transition:opacity .3s; }
+.save-msg.show { opacity:1; }
+.empty-state { padding:60px 20px; text-align:center; color:var(--muted); border:1px dashed var(--border); border-radius:var(--radius); }
+.empty-title { font-family:var(--font-head); font-size:16px; color:var(--text); opacity:.4; margin-bottom:6px; }
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">MCP<span>orch</span></div>
+  <div class="sidebar-divider"></div>
+  <nav class="nav-section">
+    <a href="/" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Servers
+    </a>
+    <a href="/tools" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Tools
+    </a>
+    <a href="/demo" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Agent Demo
+    </a>
+    <a href="/agent" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 7v2M12 11h.01"/></svg>Agent Chat
+    </a>
+    <a href="/backoffice" class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Backoffice
+    </a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Backoffice</h1>
+      <p class="page-subtitle">MCP 앱 메타데이터 관리</p>
+    </div>
+    <button class="btn btn-ghost" onclick="load()" style="padding:7px 14px;font-size:12px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>Refresh
+    </button>
+  </div>
+  <div id="content"></div>
+</main>
+
+<script>
+async function load() {
+  const res = await fetch('/api/mcp/apps');
+  const apps = await res.json();
+  const el = document.getElementById('content');
+  if (!apps.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-title">No apps registered</div><div style="font-size:12px;margin-top:4px">MCP 서버를 먼저 등록해주세요.</div></div>`;
+    return;
+  }
+  el.innerHTML = apps.map(app => renderApp(app)).join('');
+}
+
+function renderApp(app) {
+  const st = (app.serverStatus || '').toLowerCase();
+  const visibleClass = app.isVisible ? 'on' : 'off';
+  const visibleText = app.isVisible ? 'Visible' : 'Hidden';
+  return `
+  <div class="app-card">
+    <div class="app-card-header">
+      <div class="status-dot ${st}"></div>
+      <div>
+        <div class="server-name">${app.serverName}</div>
+        <div class="server-url">${app.serverUrl}</div>
+      </div>
+      <span class="visible-badge ${visibleClass}">${visibleText}</span>
+    </div>
+    <div class="app-form" id="form-${app.id}">
+      <div class="field">
+        <label>Display Name</label>
+        <input type="text" id="${app.id}-displayName" value="${app.displayName || ''}" placeholder="노출용 이름">
+      </div>
+      <div class="field">
+        <label>Credit</label>
+        <input type="number" id="${app.id}-credit" value="${app.credit}" min="0">
+      </div>
+      <div class="field">
+        <label>Thumbnail URL</label>
+        <input type="text" id="${app.id}-thumbnail" value="${app.thumbnail || ''}" placeholder="https://...">
+      </div>
+      <div class="field">
+        <label>Visible</label>
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="${app.id}-isVisible" ${app.isVisible ? 'checked' : ''}>
+            <span class="toggle-slider"></span>
+          </label>
+          <span style="font-size:12px;color:var(--muted)">사용자에게 노출</span>
+        </div>
+      </div>
+      <div class="field full">
+        <label>App Description</label>
+        <textarea id="${app.id}-description" placeholder="노출용 설명">${app.description || ''}</textarea>
+      </div>
+      <div class="field full">
+        <label>Server Description</label>
+        <textarea id="${app.id}-serverDescription" placeholder="서버 기술 설명">${app.serverDescription || ''}</textarea>
+      </div>
+    </div>
+    <div class="app-footer">
+      <span class="save-msg" id="msg-${app.id}">저장되었습니다.</span>
+      <button class="btn btn-accent" onclick="save('${app.id}')">저장</button>
+    </div>
+  </div>`;
+}
+
+async function save(id) {
+  const body = {
+    displayName:       document.getElementById(`${id}-displayName`).value || null,
+    thumbnail:         document.getElementById(`${id}-thumbnail`).value || null,
+    credit:            parseInt(document.getElementById(`${id}-credit`).value) || 0,
+    description:       document.getElementById(`${id}-description`).value || null,
+    isVisible:         document.getElementById(`${id}-isVisible`).checked,
+    serverDescription: document.getElementById(`${id}-serverDescription`).value || null,
+  };
+  await fetch(`/api/mcp/apps/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const msg = document.getElementById(`msg-${id}`);
+  msg.classList.add('show');
+  setTimeout(() => { msg.classList.remove('show'); load(); }, 1500);
+}
+
+load();
+</script>
+</body>
+</html>

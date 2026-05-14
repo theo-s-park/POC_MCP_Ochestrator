@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Agent Demo — MCP Orchestrator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070809;--surface:#0e1015;--surface2:#13161e;--surface3:#1a1e28;
+  --border:rgba(255,255,255,0.06);--border-hi:rgba(255,255,255,0.13);
+  --text:#dde3ec;--muted:#5a6478;--subtle:#2a303d;
+  --accent:#00e5a0;--accent-d:rgba(0,229,160,0.12);
+  --blue:#4d9cff;--blue-d:rgba(77,156,255,0.12);
+  --amber:#f5a623;--red:#ff5f5f;
+  --sidebar-w:228px;--radius:10px;
+  --font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;display:flex;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radial-gradient(circle,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:28px 28px}
+.sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
+.sidebar-logo{padding:28px 24px 24px;font-family:var(--font-head);font-size:22px;font-weight:800;letter-spacing:-.5px}
+.sidebar-logo span{color:var(--accent)}
+.sidebar-divider{height:1px;background:var(--border);margin:0 16px 12px}
+.nav-section{padding:0 12px;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent-d);color:var(--accent)}
+.nav-icon{width:16px;height:16px;flex-shrink:0}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.token-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.token-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-family:var(--font-mono);font-size:11px;outline:none;transition:border .15s}
+.token-input:focus{border-color:var(--accent)}
+.main{margin-left:var(--sidebar-w);flex:1;padding:36px 40px;display:flex;flex-direction:column}
+.page-title{font-family:var(--font-head);font-size:28px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px}
+.page-subtitle{color:var(--muted);font-size:13px;margin-bottom:32px}
+.demo-layout{display:grid;grid-template-columns:380px 1fr;gap:24px;flex:1}
+
+/* ── Left panel ── */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.panel-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-family:var(--font-head);font-size:14px;font-weight:600}
+.panel-body{padding:20px}
+
+.form-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px}
+.form-input,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;transition:border .15s;font-family:var(--font-body);appearance:none}
+.form-input:focus,.form-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-d)}
+.form-input::placeholder{color:var(--subtle)}
+.form-group{margin-bottom:16px}
+.btn-exec{width:100%;padding:12px;background:var(--accent);color:#051a12;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-head);letter-spacing:.03em;transition:all .15s;margin-top:4px}
+.btn-exec:hover:not(:disabled){background:#00ffb2;box-shadow:0 4px 24px rgba(0,229,160,.35);transform:translateY(-1px)}
+.btn-exec:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── Right panel ── */
+.right-col{display:flex;flex-direction:column;gap:16px}
+
+/* Flow visualization */
+.flow-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.flow-inner{padding:24px 28px;display:flex;align-items:center;justify-content:center;gap:0}
+.flow-node{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;min-width:110px;transition:border-color .3s,box-shadow .3s}
+.flow-node.lit{border-color:var(--accent);box-shadow:0 0 16px var(--accent-d)}
+.flow-node.lit2{border-color:var(--blue);box-shadow:0 0 16px var(--blue-d)}
+.node-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+.node-name{font-family:var(--font-mono);font-size:12px;font-weight:500}
+.flow-arrow{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;padding:0 4px}
+.arrow-line{height:2px;background:var(--border);width:100%;border-radius:2px;position:relative;overflow:hidden}
+.arrow-line::after{content:'';position:absolute;left:-100%;top:0;width:100%;height:100%;background:linear-gradient(90deg,transparent,var(--accent),transparent);transition:left 0s}
+.arrow-line.animate::after{left:100%;transition:left .6s ease}
+.arrow-label{font-size:10px;color:var(--muted);margin-top:5px;white-space:nowrap}
+.arrow-head{font-size:10px;color:var(--muted);align-self:flex-end;margin-top:-16px}
+
+/* Request / Response */
+.code-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.code-header{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.code-label{font-size:11px;color:var(--muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em}
+.code-status{font-size:11px;font-family:var(--font-mono)}
+.code-body{padding:14px 16px;max-height:200px;overflow-y:auto}
+.code-body pre{font-family:var(--font-mono);font-size:11px;line-height:1.7;color:var(--muted);white-space:pre-wrap;word-break:break-all}
+.code-body pre.has-data{color:var(--text)}
+
+/* JSON syntax highlight */
+.json-key{color:var(--blue)}
+.json-str{color:var(--accent)}
+.json-num{color:var(--amber)}
+
+/* Result highlight */
+.result-text{font-family:var(--font-mono);font-size:18px;font-weight:500;color:var(--accent);padding:16px;text-align:center}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">MCP<span>orch</span></div>
+  <div class="sidebar-divider"></div>
+  <nav class="nav-section">
+    <a href="/" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Servers
+    </a>
+    <a href="/tools" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Tools
+    </a>
+    <a href="/demo" class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Agent Demo
+    </a>
+    <a href="/agent" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 7v2M12 11h.01"/></svg>Agent Chat
+    </a>
+    <a href="/backoffice" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Backoffice
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="token-label">Token</div>
+    <input id="globalToken" class="token-input" value="test-token-123">
+  </div>
+</aside>
+
+<main class="main">
+  <h1 class="page-title">Agent Demo</h1>
+  <p class="page-subtitle">Simulate how an agent calls tools through the orchestrator</p>
+
+  <div class="demo-layout">
+
+    <!-- Left: Tool caller -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Tool Call</span>
+        <span id="toolCount" style="font-size:11px;color:var(--muted)">loading...</span>
+      </div>
+      <div class="panel-body">
+        <div class="form-group">
+          <label class="form-label">Select Tool</label>
+          <select id="toolSelect" class="form-select" onchange="onToolSelect()">
+            <option value="">— loading tools —</option>
+          </select>
+        </div>
+        <div id="paramForm"></div>
+        <button class="btn-exec" id="execBtn" disabled onclick="execute()">Execute Tool</button>
+      </div>
+    </div>
+
+    <!-- Right: Flow + results -->
+    <div class="right-col">
+
+      <!-- Flow diagram -->
+      <div class="flow-panel">
+        <div class="panel-header"><span class="panel-title">Communication Flow</span></div>
+        <div class="flow-inner">
+          <div class="flow-node" id="nodeClient">
+            <div class="node-label">Client</div>
+            <div class="node-name">You</div>
+          </div>
+          <div class="flow-arrow">
+            <div class="arrow-line" id="arrow1"></div>
+            <div class="arrow-label" id="arrowLabel1">POST /mcp</div>
+          </div>
+          <div class="flow-node" id="nodeOrch">
+            <div class="node-label">Orchestrator</div>
+            <div class="node-name">:8080</div>
+          </div>
+          <div class="flow-arrow">
+            <div class="arrow-line" id="arrow2"></div>
+            <div class="arrow-label" id="arrowLabel2">tools/call</div>
+          </div>
+          <div class="flow-node" id="nodeServer">
+            <div class="node-label">MCP Server</div>
+            <div class="node-name" id="nodeServerName">:8081</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Request -->
+      <div class="code-panel">
+        <div class="code-header">
+          <span class="code-label">Request</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span id="reqSource" style="font-size:10px;color:var(--muted);font-family:var(--font-mono)">You → localhost:8080</span>
+            <span class="code-status" id="reqMethod" style="color:var(--muted)">POST /mcp</span>
+          </div>
+        </div>
+        <div class="code-body">
+          <pre id="reqBox">Waiting for execution...</pre>
+        </div>
+      </div>
+
+      <!-- Response -->
+      <div class="code-panel">
+        <div class="code-header">
+          <span class="code-label">Response</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span id="resSource" style="font-size:10px;color:var(--muted);font-family:var(--font-mono)">← MCP Server</span>
+            <span class="code-status" id="resStatus" style="color:var(--muted)">—</span>
+          </div>
+        </div>
+        <div class="code-body">
+          <pre id="resBox">Waiting for execution...</pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script>
+const TOKEN = () => document.getElementById('globalToken').value;
+let allTools = [];
+
+function highlight(json) {
+  return JSON.stringify(json, null, 2)
+    .replace(/(".*?")(\s*:)/g, '<span class="json-key">$1</span>$2')
+    .replace(/:\s*(".*?")/g, ': <span class="json-str">$1</span>')
+    .replace(/:\s*(\d+\.?\d*)/g, ': <span class="json-num">$1</span>');
+}
+
+let toolServerMap = {}; // toolName → { serverName, url }
+
+async function loadTools() {
+  try {
+    const [mcpRes, srvRes] = await Promise.all([
+      fetch('/mcp', { method:'POST', headers:{'Content-Type':'application/json','X-Mcp-Token':TOKEN()}, body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list',params:{}}) }),
+      fetch('/api/mcp/servers', { headers:{'X-Mcp-Token':TOKEN()} })
+    ]);
+    const mcpData = await mcpRes.json();
+    const srvData = await srvRes.json();
+    allTools = mcpData.result?.tools || [];
+
+    // build tool → server map
+    toolServerMap = {};
+    for (const s of (srvData.servers || [])) {
+      for (const t of (s.tools || [])) {
+        toolServerMap[t.name] = { serverName: s.name, url: s.url };
+      }
+    }
+
+    const sel = document.getElementById('toolSelect');
+    const count = document.getElementById('toolCount');
+    if (!allTools.length) {
+      sel.innerHTML = '<option value="">No tools available</option>';
+      count.textContent = '0 tools';
+      return;
+    }
+    count.textContent = `${allTools.length} tool${allTools.length!==1?'s':''}`;
+    sel.innerHTML = '<option value="">— select a tool —</option>' + allTools.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+    const preset = new URLSearchParams(location.search).get('tool');
+    if (preset) { sel.value = preset; onToolSelect(); }
+  } catch(e) {
+    document.getElementById('toolCount').textContent = 'error';
+  }
+}
+
+function onToolSelect() {
+  const name = document.getElementById('toolSelect').value;
+  const tool = allTools.find(t => t.name === name);
+  const formEl = document.getElementById('paramForm');
+  const btn = document.getElementById('execBtn');
+  if (!tool) { formEl.innerHTML = ''; btn.disabled = true; return; }
+  const props = tool.inputSchema?.properties || {};
+  const req = tool.inputSchema?.required || [];
+  formEl.innerHTML = Object.entries(props).map(([k,v]) => {
+    const required_mark = req.includes(k) ? '<span style="color:var(--red);margin-left:3px">*</span>' : '';
+    const label = `<label class="form-label">${k} <span style="color:var(--subtle)">(${v.type})</span>${required_mark}</label>`;
+    let input;
+    if (v.type === 'boolean') {
+      input = `<select id="p_${k}" class="form-select"><option value="">— 미지정 —</option><option value="true">true</option><option value="false">false</option></select>`;
+    } else {
+      input = `<input id="p_${k}" class="form-input" placeholder="${k}" ${v.type==='number'||v.type==='integer'?'type="number"':''}>`;
+    }
+    return `<div class="form-group">${label}${input}</div>`;
+  }).join('');
+  btn.disabled = false;
+  document.getElementById('arrowLabel2').textContent = `tools/call → ${name}`;
+
+  // update flow node + request source label with actual server info
+  const srv = toolServerMap[name];
+  if (srv) {
+    const shortUrl = srv.url.replace(/^https?:\/\//, '');
+    document.getElementById('nodeServerName').textContent = shortUrl;
+    document.getElementById('reqSource').textContent = `You → localhost:8080`;
+    document.getElementById('resSource').textContent = `← ${shortUrl}`;
+  }
+}
+
+async function execute() {
+  const name = document.getElementById('toolSelect').value;
+  const tool = allTools.find(t => t.name === name);
+  if (!tool) return;
+  const props = tool.inputSchema?.properties || {};
+  const required = tool.inputSchema?.required || [];
+  const args = {};
+  for (const [k, v] of Object.entries(props)) {
+    const val = document.getElementById(`p_${k}`)?.value;
+    if (val === '' && !required.includes(k)) continue; // 선택 필드 빈 값 제외
+    if (v.type === 'boolean') {
+      if (val === '') continue;
+      args[k] = val === 'true';
+    } else if (v.type === 'number' || v.type === 'integer') {
+      if (val === '') continue;
+      args[k] = Number(val);
+    } else {
+      args[k] = val;
+    }
+  }
+  const payload = { jsonrpc:'2.0', id:Date.now(), method:'tools/call', params:{ name, arguments:args } };
+
+  // Animate flow
+  resetFlow();
+  await delay(100);
+  light('nodeClient', 'lit');
+  animate('arrow1');
+  document.getElementById('reqBox').innerHTML = highlight(payload);
+  document.getElementById('reqBox').classList.add('has-data');
+  document.getElementById('resBox').textContent = 'Routing...';
+  document.getElementById('resBox').classList.remove('has-data');
+  document.getElementById('resStatus').textContent = '...';
+
+  await delay(500);
+  light('nodeOrch', 'lit');
+  animate('arrow2');
+
+  await delay(500);
+  light('nodeServer', 'lit2');
+
+  const t0 = Date.now();
+  const res = await fetch('/mcp', { method:'POST', headers:{'Content-Type':'application/json','X-Mcp-Token':TOKEN()}, body:JSON.stringify(payload) });
+  const data = await res.json();
+  const ms = Date.now() - t0;
+
+  document.getElementById('resStatus').textContent = `200 OK · ${ms}ms`;
+  document.getElementById('resStatus').style.color = 'var(--accent)';
+  document.getElementById('resBox').innerHTML = highlight(data);
+  document.getElementById('resBox').classList.add('has-data');
+}
+
+function light(id, cls) { document.getElementById(id).classList.add(cls); }
+function animate(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('animate');
+  void el.offsetWidth;
+  el.classList.add('animate');
+}
+function resetFlow() {
+  ['nodeClient','nodeOrch','nodeServer'].forEach(id => { const el=document.getElementById(id); el.classList.remove('lit','lit2'); });
+  ['arrow1','arrow2'].forEach(id => document.getElementById(id).classList.remove('animate'));
+  document.getElementById('resStatus').style.color = 'var(--muted)';
+}
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+loadTools();
+</script>
+</body>
+</html>

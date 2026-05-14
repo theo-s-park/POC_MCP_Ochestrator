@@ -1,9 +1,8 @@
 package sevin.mcporchestrator.agent;
 
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/agent")
@@ -16,10 +15,7 @@ public class AgentController {
     }
 
     @PostMapping("/chat")
-    public AgentResponse chat(@RequestBody AgentRequest request) {
-        return new AgentResponse(agentService.chat(request.question()));
+    public AgentResponse chat(@RequestBody Map<String, String> body) {
+        return agentService.chat(body.get("question"));
     }
-
-    public record AgentRequest(String question) {}
-    public record AgentResponse(String answer) {}
 }
