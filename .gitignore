@@ -39,3 +39,13 @@ out/
 ### Env ###
 .env.local
 .env
+
+### Runtime data ###
+data/
+
+### Claude Code memory ###
+.claude/
+
+### Large media ###
+docs/*.mp4
+docs/*.mov
