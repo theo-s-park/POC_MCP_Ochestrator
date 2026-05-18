@@ -60,6 +60,14 @@ public class McpServerController {
         return ResponseEntity.ok(Map.of("status", "ok"));
     }
 
+    @GetMapping("/{serverId}")
+    public ResponseEntity<Map<String, Object>> detail(@PathVariable String serverId) {
+        McpServerRecord server = registry.find(serverId)
+            .orElseThrow(McpServerNotFoundException::new);
+        McpAppEntity app = mcpAppRepository.findByMcpServerId(serverId).orElse(null);
+        return ResponseEntity.ok(toServerMap(server, app));
+    }
+
     @GetMapping
     public ResponseEntity<Map<String, Object>> list() {
         Map<String, McpAppEntity> appByServerId = mcpAppRepository.findAll().stream()
