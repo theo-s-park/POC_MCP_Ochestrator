@@ -1,4 +1,4 @@
-# MCP 관리 서버 통신 규약 v0.5
+# MCP 관리 서버 통신 규약 v0.6
 
 이 문서는 **MCP 관리 서버에 등록하려는 MCP 서버 개발자**를 대상으로 한다.
 MCP 관리 서버에 등록하기 위해 MCP 서버가 구현해야 할 엔드포인트와 통신 규약을 정의한다.
@@ -232,9 +232,18 @@ Content-Type: application/json
   "name": "my-mcp-server",
   "url": "https://my-mcp.example.com",
   "description": "서버 설명",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "type": "MCP"
 }
 ```
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `name` | O | 서버 등록명 |
+| `url` | O | MCP 서버 Base URL (`/mcp`, `/health` 경로 제외한 루트) |
+| `description` | 선택 | 서버 설명 |
+| `version` | 선택 | 서버 버전 |
+| `type` | 선택 | `MCP` (기본값) / `WEBAPP`. `WEBAPP`이면 `tools/list` 수집을 생략하고 바로 `ACTIVE`로 전환 |
 
 **Response**
 ```json
@@ -287,7 +296,7 @@ MCP 관리 서버 ──── GET {serverUrl}/health ──── 60초마다
   run: |
     curl -X POST https://mcp-manager/api/mcp/servers/register \
       -H "Content-Type: application/json" \
-      -d '{"name":"my-mcp","url":"https://my-mcp.example.com","version":"1.0.0"}'
+      -d '{"name":"my-mcp","url":"https://my-mcp.example.com","version":"1.0.0","type":"MCP"}'
 ```
 
 ---
@@ -312,4 +321,4 @@ MCP 관리 서버 → 어댑터 (로컬) → 표준 MCP 서버 (원격)
 ## 비고
 
 - MCP 공식 스펙: https://modelcontextprotocol.io
-- DB: H2 파일 DB (`./data/mcporchestrator.mv.db`), Docker 볼륨 `/app/data` 마운트 필요
+- 인증 방식은 현재 미확정. 확정되면 `tools/call` 요청에 인증 헤더가 추가될 수 있으며, 이에 따라 MCP 서버의 처리 방식도 달라질 수 있다.
