@@ -1,4 +1,4 @@
-# MCP 학습 과제
+﻿# MCP 학습 과제
 
 ## 배경
 
@@ -10,24 +10,24 @@
 
 ## 단계별 과제
 
-### [Phase 1](./phase1.md) ✅
+### [Phase 1](./phase1.md)
 **MCP 서버 구현 + LLM Tool Calling 검증**
 - Spring AI 기반 MCP 서버 구성 및 MCP Inspector 검증
 - OpenAI LLM 연결 및 자연어 기반 tool 호출 흐름 확인
 - 산출물: `@Tool` 어노테이션 기반 MCP 서버 + AgentService
 
-### [Phase 2](./phase2.md) ✅
+### [Phase 2](./phase2.md)
 **서버/호스트 분리 → 진짜 MCP 프로토콜 경유**
 - MCP Server 프로젝트 분리
 - MCP Client로 외부 서버에 연결
 - LLM → MCP Client → HTTP → MCP Server → tool 실행 흐름 검증
 - 산출물: 분리된 MCP Server + MCP Host(Client + LLM)
 
-### [Phase 3](./phase3.md) ✅
-**MCP 오케스트레이터 구축**
+### [Phase 3](./phase3.md)
+**MCP 관리 서버 구축**
 - 여러 MCP 서버(내 서버 + 외부 공개 서버) 동시 연결
 - LLM이 여러 서버의 tool을 섞어서 사용하는 복합 시나리오 검증
-- 산출물: 2개 이상 MCP 서버를 단일 엔드포인트로 묶는 오케스트레이터
+- 산출물: 2개 이상 MCP 서버를 단일 엔드포인트로 묶는 MCP 관리 서버
 
 ### [Phase 4](./phase4.md)
 **멀티 서비스 MCP 연동 + 인증 전파 (Cross-Service Authentication)**
@@ -37,7 +37,7 @@
 - 핵심 검증 항목:
   - MCP 요청 간 토큰 전달 방식 (Authorization header 전파)
   - 서비스 간 인증 신뢰 체계 (토큰 검증 위치 및 방식)
-  - 오케스트레이터가 각 서비스의 인증 컨텍스트를 어떻게 관리하는지
+  - MCP 관리 서버가 각 서비스의 인증 컨텍스트를 어떻게 관리하는지
 - 산출물: 인증이 연결된 3개 서비스 MCP 연동 시나리오 동작 검증
 
 ---

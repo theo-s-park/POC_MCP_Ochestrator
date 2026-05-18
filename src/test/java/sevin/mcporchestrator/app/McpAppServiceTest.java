@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import sevin.mcporchestrator.common.exception.McpAppNotFoundException;
 import sevin.mcporchestrator.registry.McpServerRegistry;
 import sevin.mcporchestrator.registry.domain.McpServerRecord;
 import sevin.mcporchestrator.registry.domain.ServerStatus;
@@ -14,9 +15,10 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
 
 @ExtendWith(MockitoExtension.class)
 class McpAppServiceTest {
@@ -81,18 +83,31 @@ class McpAppServiceTest {
     }
 
     @Test
-    void update_serverDescription_delegatesToRegistry() {
+    void findById_returnsPublicView() {
         McpAppEntity app = buildApp("app1", "srv1");
+        app.setDisplayName("HWP 변환기");
+        app.setCredit(5);
+
+        McpServerRecord server = McpServerRecord.builder()
+            .serverId("srv1").name("hwp-converter").url("http://localhost:8081")
+            .status(ServerStatus.ACTIVE).registeredAt(Instant.now()).healthCheckFailures(0).build();
 
         when(mcpAppRepository.findById("app1")).thenReturn(Optional.of(app));
-        when(mcpAppRepository.save(any())).thenReturn(app);
+        when(registry.findAll()).thenReturn(List.of(server));
 
-        McpAppUpdateRequest req = new McpAppUpdateRequest();
-        req.setServerDescription("new desc");
+        McpAppPublicView result = service.findById("app1");
 
-        service.update("app1", req);
+        assertThat(result.id()).isEqualTo("app1");
+        assertThat(result.credit()).isEqualTo(5);
+        assertThat(result.displayName()).isEqualTo("HWP 변환기");
+    }
 
-        verify(registry).updateDescription("srv1", "new desc");
+    @Test
+    void findById_unknownId_throwsNotFoundException() {
+        when(mcpAppRepository.findById("unknown")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.findById("unknown"))
+            .isInstanceOf(McpAppNotFoundException.class);
     }
 
     private McpAppEntity buildApp(String id, String serverId) {

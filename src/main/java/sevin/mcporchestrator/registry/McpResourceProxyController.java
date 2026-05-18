@@ -1,8 +1,8 @@
 package sevin.mcporchestrator.registry;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.server.ResponseStatusException;
+import sevin.mcporchestrator.common.exception.ErrorCode;
+import sevin.mcporchestrator.common.exception.McpResourceException;
+import sevin.mcporchestrator.common.exception.McpServerNotFoundException;
 import sevin.mcporchestrator.registry.domain.McpServerRecord;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -19,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 
+@Tag(name = "MCP Resources", description = "MCP 서버 리소스 프록시 (resources/read)")
 @RestController
 public class McpResourceProxyController {
 
@@ -42,7 +45,7 @@ public class McpResourceProxyController {
             @RequestParam String uri) {
 
         McpServerRecord server = registry.find(serverId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "server not found"));
+            .orElseThrow(McpServerNotFoundException::new);
 
         try {
             Map<String, Object> request = Map.of(
@@ -63,7 +66,7 @@ public class McpResourceProxyController {
             JsonNode contents = root.path("result").path("contents");
 
             if (!contents.isArray() || contents.isEmpty()) {
-                return ResponseEntity.notFound().build();
+                throw new McpResourceException(ErrorCode.RESOURCE_NOT_FOUND);
             }
 
             JsonNode content = contents.get(0);
@@ -83,11 +86,13 @@ public class McpResourceProxyController {
                     .body(bytes);
             }
 
-            return ResponseEntity.notFound().build();
+            throw new McpResourceException(ErrorCode.RESOURCE_NOT_FOUND);
 
+        } catch (McpResourceException e) {
+            throw e;
         } catch (Exception e) {
             log.warn("[ResourceProxy] resources/read failed - server {}, uri {}: {}", serverId, uri, e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+            throw new McpResourceException(ErrorCode.RESOURCE_UPSTREAM_ERROR);
         }
     }
 }

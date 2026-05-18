@@ -27,6 +27,8 @@ public class McpAppEntity {
     private String mcpServerId;
 
     private String displayName;
+
+    @Column(columnDefinition = "TEXT")
     private String thumbnail;
 
     @Builder.Default

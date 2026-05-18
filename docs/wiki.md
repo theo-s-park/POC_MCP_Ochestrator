@@ -1,17 +1,17 @@
-# MCP 오케스트레이터
+﻿# MCP 관리 서버
 
 ## 한 줄 요약
 
-> PO 사용자가 자연어로 요청하면, LLM이 적합한 툴을 선택하고, 오케스트레이터가 해당 서비스를 인증/크레딧 처리 후 실행한다.
+> PO 사용자가 자연어로 요청하면, LLM이 적합한 툴을 선택하고, MCP 관리 서버가 해당 서비스를 인증/크레딧 처리 후 실행한다.
 
 ---
 
 ## 무엇을 해결하는가
 
-연구소의 각 서비스(PDF 변환, HWP 변환, AI 이미지 등)를 MCP 표준으로 감싸면, 오케스트레이터 하나에 등록하는 것만으로 PO 사용자에게 제공할 수 있다.
+연구소의 각 서비스(PDF 변환, HWP 변환, AI 이미지 등)를 MCP 표준으로 감싸면, MCP 관리 서버 하나에 등록하는 것만으로 PO 사용자에게 제공할 수 있다.
 
 - 연구소는 자기 서비스를 MCP로 씌우기만 하면 된다
-- 인증, 크레딧 차감은 오케스트레이터가 처리한다
+- 인증, 크레딧 차감은 MCP 관리 서버가 처리한다
 - 새 서비스가 생기면 배포 파이프라인에서 등록만 하면 된다
 
 ---
@@ -27,7 +27,7 @@ PO 사용자 (자연어)
     ↓
 LLM Agent — 툴 자동 선택 (Claude API / OpenAI / Spring AI)
     ↓  POST /mcp  Authorization: Bearer {PAT}
-오케스트레이터
+MCP 관리 서버
     ├─ ① PAT 검증        → PO 인증 서버
     ├─ ② 툴 라우팅       → 해당 MCP 서버로 포워딩
     └─ ③ 크레딧 차감     → 크레딧 서버 (성공 응답 후)
@@ -37,7 +37,7 @@ LLM Agent — 툴 자동 선택 (Claude API / OpenAI / Spring AI)
 결과 반환 → 사용자
 ```
 
-**오케스트레이터가 직접 구현하는 비즈니스 로직은 없다.**  
+**MCP 관리 서버가 직접 구현하는 비즈니스 로직은 없다.**  
 인증, 크레딧, 서비스 실행 모두 외부 서버를 호출하는 것뿐이다.
 
 ---
@@ -74,7 +74,7 @@ LLM Agent — 툴 자동 선택 (Claude API / OpenAI / Spring AI)
 
 ## 각 팀의 역할
 
-### 오케스트레이터 (Theo)
+### MCP 관리 서버 (Theo)
 
 - MCP 서버 등록 / 삭제 / 헬스체크 관리
 - toolName → 서버 라우팅
@@ -110,7 +110,7 @@ LLM Agent — 툴 자동 선택 (Claude API / OpenAI / Spring AI)
 ```
 빌드 + 배포 성공
     ↓
-POST /servers/register  →  오케스트레이터
+POST /servers/register  →  MCP 관리 서버
     (tools/list 자동 수집, DB 저장)
     ↓
 POST /credits/tools/register  →  크레딧 서버
@@ -136,12 +136,12 @@ POST /credits/tools/register  →  크레딧 서버
 
 | 항목 | 상태 |
 |---|---|
-| MCP 프로토콜 (JSON-RPC 2.0, Streamable HTTP) | ✅ |
-| 서버 등록 / 삭제 / 헬스체크 | ✅ |
-| toolName 기반 라우팅 | ✅ |
-| tools/list 자동 수집 | ✅ |
-| 외부 MCP 연동 검증 (Playwright MCP) | ✅ |
-| stdio → HTTP 브릿지 | ✅ |
+| MCP 프로토콜 (JSON-RPC 2.0, Streamable HTTP) | O |
+| 서버 등록 / 삭제 / 헬스체크 | O |
+| toolName 기반 라우팅 | O |
+| tools/list 자동 수집 | O |
+| 외부 MCP 연동 검증 (Playwright MCP) | O |
+| stdio → HTTP 브릿지 | O |
 | DB 영속화 | 구현 예정 |
 | PAT 검증 연동 | API 스펙 확정 후 |
 | 크레딧 차감 연동 | API 스펙 확정 후 |

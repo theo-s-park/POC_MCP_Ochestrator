@@ -3,6 +3,7 @@ package sevin.mcporchestrator.registry;
 import jakarta.persistence.*;
 import lombok.*;
 import sevin.mcporchestrator.registry.domain.ServerStatus;
+import sevin.mcporchestrator.registry.domain.ServerType;
 
 import java.time.Instant;
 
@@ -20,6 +21,10 @@ public class McpServerEntity {
     private String url;
     private String description;
     private String version;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private ServerType type = ServerType.MCP;
 
     @Enumerated(EnumType.STRING)
     private ServerStatus status;

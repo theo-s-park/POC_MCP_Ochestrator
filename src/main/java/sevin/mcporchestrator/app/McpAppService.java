@@ -1,12 +1,12 @@
 package sevin.mcporchestrator.app;
 
 import org.springframework.stereotype.Service;
+import sevin.mcporchestrator.common.exception.McpAppNotFoundException;
 import sevin.mcporchestrator.registry.McpServerRegistry;
 import sevin.mcporchestrator.registry.domain.McpServerRecord;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,15 +42,23 @@ public class McpAppService {
             .toList();
     }
 
-    public Optional<McpAppEntity> update(String id, McpAppUpdateRequest request) {
-        return mcpAppRepository.findById(id).map(app -> {
-            if (request.getDisplayName() != null) app.setDisplayName(request.getDisplayName());
-            if (request.getThumbnail() != null) app.setThumbnail(request.getThumbnail());
-            if (request.getCredit() != null) app.setCredit(request.getCredit());
-            if (request.getDescription() != null) app.setDescription(request.getDescription());
-            if (request.getIsVisible() != null) app.setVisible(request.getIsVisible());
-            if (request.getServerDescription() != null) registry.updateDescription(app.getMcpServerId(), request.getServerDescription());
-            return mcpAppRepository.save(app);
-        });
+    public McpAppPublicView findById(String id) {
+        Map<String, McpServerRecord> serverMap = registry.findAll().stream()
+            .collect(Collectors.toMap(McpServerRecord::getServerId, s -> s));
+
+        McpAppEntity app = mcpAppRepository.findById(id)
+            .orElseThrow(McpAppNotFoundException::new);
+        return McpAppPublicView.of(app, serverMap.get(app.getMcpServerId()));
+    }
+
+    public McpAppEntity update(String id, McpAppUpdateRequest request) {
+        McpAppEntity app = mcpAppRepository.findById(id)
+            .orElseThrow(McpAppNotFoundException::new);
+        if (request.getDisplayName() != null) app.setDisplayName(request.getDisplayName());
+        if (request.getThumbnail() != null) app.setThumbnail(request.getThumbnail());
+        if (request.getCredit() != null) app.setCredit(request.getCredit());
+        if (request.getDescription() != null) app.setDescription(request.getDescription());
+        if (request.getIsVisible() != null) app.setVisible(request.getIsVisible());
+        return mcpAppRepository.save(app);
     }
 }

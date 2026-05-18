@@ -9,5 +9,4 @@ public class McpAppUpdateRequest {
     private Integer credit;
     private String description;
     private Boolean isVisible;
-    private String serverDescription;
 }

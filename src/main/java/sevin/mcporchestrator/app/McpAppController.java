@@ -1,5 +1,6 @@
 package sevin.mcporchestrator.app;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Tag(name = "MCP Apps", description = "앱 메타데이터 조회·수정 (백오피스/퍼블릭)")
 @RestController
 @RequestMapping("/api/mcp/apps")
 public class McpAppController {
@@ -30,10 +32,14 @@ public class McpAppController {
         return ResponseEntity.ok(service.findAllPublic());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<McpAppPublicView> getOne(@PathVariable String id) {
+        return ResponseEntity.ok(service.findById(id));
+    }
+
     @PatchMapping("/{id}")
     public ResponseEntity<Void> update(@PathVariable String id, @RequestBody McpAppUpdateRequest request) {
-        return service.update(id, request)
-            .map(app -> ResponseEntity.ok().<Void>build())
-            .orElse(ResponseEntity.notFound().build());
+        service.update(id, request);
+        return ResponseEntity.ok().build();
     }
 }

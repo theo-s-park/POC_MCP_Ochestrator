@@ -14,6 +14,8 @@ public class McpServerRecord {
     private String url;
     private String description;
     private String version;
+    @Builder.Default
+    private ServerType type = ServerType.MCP;
     private ServerStatus status;
     private List<McpTool> tools;
     private List<McpResource> resources;

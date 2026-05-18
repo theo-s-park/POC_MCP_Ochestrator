@@ -1,4 +1,4 @@
-# MCP 프로토콜 직접 구현 학습 과제
+﻿# MCP 프로토콜 직접 구현 학습 과제
 
 추후 MCP 기반 연동 작업을 수행하기 위해 MCP 프로토콜을 서버/클라이언트 양쪽 모두 직접 구현해보는 학습 과제를 진행한다.
 
@@ -115,13 +115,13 @@ LLM이 질문 내용을 분석하여 `mcp-tool-server`의 `random`과 `everythin
 
 ---
 
-## Phase 3 — MCP 오케스트레이터 구축
+## Phase 3 — MCP 관리 서버 구축
 
 **목표**
-여러 MCP 서버(내 서버 + 외부 공개 서버)를 단일 엔드포인트로 묶는 오케스트레이터 구축 및 외부 MCP 서버 제어 검증
+여러 MCP 서버(내 서버 + 외부 공개 서버)를 단일 엔드포인트로 묶는 MCP 관리 서버 구축 및 외부 MCP 서버 제어 검증
 
 **산출물**
-- 2개 이상 MCP 서버를 단일 엔드포인트로 묶는 오케스트레이터
+- 2개 이상 MCP 서버를 단일 엔드포인트로 묶는 MCP 관리 서버
 - 서버 관리 UI (등록/삭제/상태), Tool 탐색, Agent Demo
 
 ### 구조 변경
@@ -136,7 +136,7 @@ mcporchestrator (포트 8080)
 
 **Phase 3**
 ```
-mcporchestrator (포트 8080)      ← MCP 오케스트레이터
+mcporchestrator (포트 8080)      ← MCP 관리 서버
   └─ McpServerRegistry           (런타임 서버 등록/삭제)
   └─ McpProxyController          (단일 /mcp 엔드포인트, toolName 기반 라우팅)
   └─ HealthCheckPoller           (60초 폴링, 3회 실패 → INACTIVE)
@@ -149,7 +149,7 @@ mcporchestrator (포트 8080)      ← MCP 오케스트레이터
 
 ### 구축 과정
 
-Phase 2에서는 MCP Client가 설정 파일에 서버 목록을 정적으로 들고 있었다. 서버가 늘어날수록 설정 변경 + 재시작이 필요한 구조다. Phase 3에서는 Spring AI MCP Client를 걷어내고 오케스트레이터를 직접 구현했다.
+Phase 2에서는 MCP Client가 설정 파일에 서버 목록을 정적으로 들고 있었다. 서버가 늘어날수록 설정 변경 + 재시작이 필요한 구조다. Phase 3에서는 Spring AI MCP Client를 걷어내고 MCP 관리 서버를 직접 구현했다.
 
 책임을 세 컴포넌트로 분리했다.
 
@@ -168,7 +168,7 @@ Phase 2에서는 MCP Client가 설정 파일에 서버 목록을 정적으로 �
 
 **stdio → HTTP 브릿지**
 
-세상의 MCP 서버 대부분은 stdio 방식이다. 오케스트레이터는 네트워크 너머의 서버를 관리해야 하므로 HTTP가 전제 조건이다. stdio MCP를 HTTP로 노출하기 위해 Node.js 브릿지를 구현했다.
+세상의 MCP 서버 대부분은 stdio 방식이다. MCP 관리 서버는 네트워크 너머의 서버를 관리해야 하므로 HTTP가 전제 조건이다. stdio MCP를 HTTP로 노출하기 위해 Node.js 브릿지를 구현했다.
 
 ```bash
 # Playwright MCP를 HTTP로 노출
@@ -191,7 +191,7 @@ PORT=3003 node bridge.js npx -y @playwright/mcp@latest
 
 **Playwright MCP — 브라우저 제어**
 
-Microsoft의 공식 Playwright MCP를 오케스트레이터에 URL 하나로 등록하고, `browser_navigate`와 `browser_take_screenshot`을 실행했다. 오케스트레이터 코드는 한 줄도 바꾸지 않았다.
+Microsoft의 공식 Playwright MCP를 MCP 관리 서버에 URL 하나로 등록하고, `browser_navigate`와 `browser_take_screenshot`을 실행했다. MCP 관리 서버 코드는 한 줄도 바꾸지 않았다.
 
 ```
 [HealthCheck] active: playwright
@@ -201,17 +201,17 @@ Microsoft의 공식 Playwright MCP를 오케스트레이터에 URL 하나로 등
 
 `browser_navigate`로 Google Chrome을 실제로 열었고, 검색창에 "roblox"를 입력한 상태에서 `browser_take_screenshot`을 실행하자 검색 결과 화면이 PNG로 반환됐다.
 
-> 📷 **이미지**: 오케스트레이터에서 browser_navigate 실행 순간 (`playwright-orchestrator.png`)
+> 📷 **이미지**: MCP 관리 서버에서 browser_navigate 실행 순간 (`playwright-orchestrator.png`)
 
 > 📷 **이미지**: Playwright가 실제로 띄운 Chrome (`playwright-google.png`)
 
 > 📷 **이미지**: browser_take_screenshot으로 캡쳐한 roblox 검색 결과 (`playwright-screenshot.png`)
 
-**MCP 서버는 누가 호출하는지 모른다.** 오케스트레이터든 Claude Desktop이든 동일한 `POST /mcp` 요청이기 때문이다. 이것이 오케스트레이터 패턴이 성립하는 이유다.
+**MCP 서버는 누가 호출하는지 모른다.** MCP 관리 서버든 Claude Desktop이든 동일한 `POST /mcp` 요청이기 때문이다. 이것이 MCP 관리 서버 패턴이 성립하는 이유다.
 
 | 항목 | 내용 |
 |---|---|
-| 오케스트레이터 코드 변경 | 0줄 |
+| MCP 관리 서버 코드 변경 | 0줄 |
 | 브릿지 코드 | Node.js 60줄 |
 | 등록 방법 | URL 하나 입력 |
 | 결과 | 실제 브라우저 제어 성공 |
@@ -221,7 +221,7 @@ Microsoft의 공식 Playwright MCP를 오케스트레이터에 URL 하나로 등
 ## Phase 4 — 멀티 서비스 MCP 연동 + 인증 전파
 
 **목표**
-실제 서비스와 오케스트레이터를 연결하여 인증 토큰 전파, 크레딧 차감이 MCP 호출과 함께 동작하는 흐름 검증
+실제 서비스와 MCP 관리 서버를 연결하여 인증 토큰 전파, 크레딧 차감이 MCP 호출과 함께 동작하는 흐름 검증
 
 **산출물**
 - DB 영속화 (서버 레지스트리, 툴 매핑)
@@ -238,7 +238,7 @@ Microsoft의 공식 Playwright MCP를 오케스트레이터에 URL 하나로 등
 [LLM Agent]
     툴 자동 선택
          ↓  POST /mcp  Authorization: Bearer {PAT}
-[오케스트레이터]
+[MCP 관리 서버]
     ① PAT 검증   → GET /auth/validate   → PO 인증 서버
     ② 툴 라우팅  → body 그대로 포워딩
     ③ 크레딧 차감 → POST /credits/deduct → 크레딧 서버
@@ -253,13 +253,13 @@ Microsoft의 공식 Playwright MCP를 오케스트레이터에 URL 하나로 등
 
 **인증 토큰 전파**
 - `Authorization: Bearer {PAT}` 헤더로 요청 진입
-- 오케스트레이터가 PAT를 인증 서버에 검증 → `userId` 획득
+- MCP 관리 서버가 PAT를 인증 서버에 검증 → `userId` 획득
 - MCP 서버로 포워딩 시 내부 토큰으로 전달
 
 **크레딧 차감 시점**
 - `tools/call` 요청이 들어온 시점이 아닌, **MCP 서버의 성공 응답 수신 후** 차감
 - 실패한 요청은 차감하지 않는다
-- 크레딧 단가는 크레딧 서버에서 관리. 오케스트레이터는 `toolId`만 전달
+- 크레딧 단가는 크레딧 서버에서 관리. MCP 관리 서버는 `toolId`만 전달
 
 **DB 영속화**
 - Phase 3까지는 서버 레지스트리를 인메모리(ConcurrentHashMap)로 관리
@@ -268,7 +268,7 @@ Microsoft의 공식 Playwright MCP를 오케스트레이터에 URL 하나로 등
 
 ### 구축 과정
 
-Phase 3의 오케스트레이터는 직접 툴을 선택하는 UI(Agent Demo)를 제공했지만, 자연어를 이해하는 LLM이 없었다. Phase 4에서는 Spring AI `ChatClient`와 동적 `ToolCallback` 등록을 결합하여 LLM이 툴을 자율 선택하는 에이전트 레이어를 추가했다.
+Phase 3의 MCP 관리 서버는 직접 툴을 선택하는 UI(Agent Demo)를 제공했지만, 자연어를 이해하는 LLM이 없었다. Phase 4에서는 Spring AI `ChatClient`와 동적 `ToolCallback` 등록을 결합하여 LLM이 툴을 자율 선택하는 에이전트 레이어를 추가했다.
 
 | 컴포넌트 | 역할 |
 |---|---|
@@ -277,7 +277,7 @@ Phase 3의 오케스트레이터는 직접 툴을 선택하는 UI(Agent Demo)를
 | `AgentResponse` | sessionId, question, answer, tool trace 리스트를 담는 응답 레코드 |
 | `AgentController` | `POST /agent/chat` 엔드포인트 |
 
-LLM은 요청마다 등록된 전체 툴 스키마를 받고, 어떤 툴을 어떤 순서로 호출할지 자율 결정한다. 오케스트레이터는 LLM의 tool call을 가로채 각 MCP 서버로 라우팅만 한다.
+LLM은 요청마다 등록된 전체 툴 스키마를 받고, 어떤 툴을 어떤 순서로 호출할지 자율 결정한다. MCP 관리 서버는 LLM의 tool call을 가로채 각 MCP 서버로 라우팅만 한다.
 
 **중복 툴 처리**
 
@@ -321,7 +321,7 @@ LLM이 3개 서버에 걸친 툴 체이닝을 자율 수행했다.
 | 2 | `get-sum` | every | `{"a":86,"b":50}` | `136` |
 | 3 | `browser_navigate` | fly | `{"url":"https://www.google.com/search?q=136"}` | 브라우저 오픈 성공 |
 
-오케스트레이터 코드는 변경 없이 서버 3개가 자연어 한 문장으로 연결됐다. LLM은 `add` 툴 대신 같은 기능의 `get-sum`을 스스로 찾아 사용했다.
+MCP 관리 서버 코드는 변경 없이 서버 3개가 자연어 한 문장으로 연결됐다. LLM은 `add` 툴 대신 같은 기능의 `get-sum`을 스스로 찾아 사용했다.
 
 ### 미결 사항 (외부 협의 필요)
 

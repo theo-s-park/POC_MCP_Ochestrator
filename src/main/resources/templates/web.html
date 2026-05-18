@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>MCP Marketplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f7fa;--surface:#ffffff;--surface2:#f3f4f6;--surface3:#eaecef;
+  --border:rgba(0,0,0,0.08);--border-hi:rgba(0,0,0,0.16);
+  --text:#111827;--muted:#6b7280;--subtle:#c4c8d0;
+  --accent:#4f46e5;--accent-d:rgba(79,70,229,0.08);
+  --blue:#2563eb;--blue-d:rgba(37,99,235,0.10);
+  --amber:#d97706;--red:#dc2626;
+  --green:#16a34a;--green-d:rgba(22,163,74,0.10);
+  --sidebar-w:228px;--radius:12px;
+  --font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;display:flex;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radial-gradient(circle,rgba(0,0,0,0.04) 1px,transparent 1px);background-size:28px 28px}
+
+/* Sidebar */
+.sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
+.sidebar-logo{padding:28px 24px 24px;font-family:var(--font-head);font-size:22px;font-weight:800;letter-spacing:-.5px}
+.sidebar-logo span{color:var(--accent)}
+.sidebar-divider{height:1px;background:var(--border);margin:0 16px 12px}
+.nav-section{padding:0 12px;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent-d);color:var(--accent)}
+.nav-icon{width:16px;height:16px;flex-shrink:0}
+
+/* Main */
+.main{margin-left:var(--sidebar-w);flex:1;padding:40px 44px;max-width:1200px}
+.hero{margin-bottom:36px}
+.hero-title{font-family:var(--font-head);font-size:32px;font-weight:800;letter-spacing:-.5px;line-height:1.2}
+.hero-title span{color:var(--accent)}
+.hero-sub{color:var(--muted);font-size:14px;margin-top:8px}
+
+/* App Grid */
+.app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+
+/* App Card */
+.app-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s,transform .2s,box-shadow .2s;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.app-card:hover{border-color:var(--border-hi);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.09)}
+.card-thumb{width:100%;height:140px;background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.card-thumb img{width:100%;height:100%;object-fit:cover}
+.card-thumb-placeholder{font-size:40px;opacity:.2}
+.card-credit{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.92);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-family:var(--font-mono);font-size:11px;color:var(--amber);font-weight:600}
+.card-body{padding:18px 18px 14px;flex:1;display:flex;flex-direction:column;gap:8px}
+.card-name{font-family:var(--font-head);font-size:17px;font-weight:700;letter-spacing:-.3px}
+.card-desc{color:var(--muted);font-size:12px;line-height:1.6;flex:1}
+.card-tools{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.tool-pill{font-family:var(--font-mono);font-size:10px;padding:2px 8px;border-radius:4px;background:var(--surface2);color:var(--blue);border:1px solid var(--border)}
+.card-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2)}
+.card-meta{font-size:11px;color:var(--muted)}
+.btn-use{display:inline-flex;align-items:center;gap:6px;padding:7px 18px;background:var(--accent);color:#ffffff;border:none;border-radius:7px;font-size:13px;font-weight:700;font-family:var(--font-head);cursor:pointer;transition:all .15s;letter-spacing:.03em}
+.btn-use:hover{background:#4338ca;box-shadow:0 4px 16px rgba(79,70,229,.2);transform:translateY(-1px)}
+
+/* Empty */
+.empty-state{grid-column:1/-1;padding:80px 20px;text-align:center;color:var(--muted);border:1px dashed var(--border);border-radius:var(--radius);background:var(--surface)}
+.empty-title{font-family:var(--font-head);font-size:18px;color:var(--text);opacity:.4;margin-bottom:8px}
+
+/* Direct Execute section */
+.exec-section{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.web-exec-select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;transition:border .15s;font-family:var(--font-body);cursor:pointer}
+.web-exec-select:focus{border-color:var(--accent)}
+.web-exec-field{display:flex;flex-direction:column;gap:4px}
+.web-exec-label{font-size:11px;color:var(--text);font-weight:500}
+.web-exec-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;outline:none;transition:border .15s;font-family:var(--font-body)}
+.web-exec-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-d)}
+.exec-no-param{font-size:12px;color:var(--muted);padding:4px 0}
+.btn-exec-direct{width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-head);transition:all .15s}
+.btn-exec-direct:hover:not(:disabled){background:#4338ca;box-shadow:0 3px 12px rgba(79,70,229,.25)}
+.btn-exec-direct:disabled{opacity:.4;cursor:not-allowed}
+.exec-result-area{border-radius:8px;padding:12px 14px;font-family:var(--font-mono);font-size:11px;line-height:1.6;white-space:pre-wrap;word-break:break-all;display:none;border:1px solid var(--border)}
+.exec-result-area.ok{background:rgba(22,163,74,.04);border-color:rgba(22,163,74,.2)}
+.exec-result-area.err{background:rgba(220,38,38,.04);border-color:rgba(220,38,38,.2);color:var(--red)}
+
+/* ── Drawer ── */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);backdrop-filter:blur(2px);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;right:0;width:520px;max-width:100vw;height:100vh;background:var(--surface);border-left:1px solid var(--border);z-index:201;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:-4px 0 24px rgba(0,0,0,0.10)}
+.drawer.open{transform:translateX(0)}
+.drawer-head{padding:24px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:14px}
+.drawer-thumb{width:52px;height:52px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.drawer-thumb img{width:100%;height:100%;object-fit:cover}
+.drawer-info{flex:1}
+.drawer-name{font-family:var(--font-head);font-size:18px;font-weight:700}
+.drawer-desc{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.drawer-close{width:30px;height:30px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.drawer-close:hover{border-color:var(--border-hi);color:var(--text);background:var(--surface2)}
+
+.drawer-body{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.section-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+
+/* Tool list in drawer */
+.tool-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px}
+.tool-card-name{font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-bottom:4px}
+.tool-card-desc{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* Chat area in drawer */
+.chat-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s}
+.chat-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-d)}
+.chat-textarea{width:100%;background:transparent;border:none;outline:none;padding:14px 16px;color:var(--text);font-family:var(--font-body);font-size:13px;resize:none;min-height:80px;line-height:1.6}
+.chat-textarea::placeholder{color:var(--subtle)}
+.chat-send-row{padding:8px 12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.chat-hint{font-size:11px;color:var(--muted)}
+.btn-send{display:inline-flex;align-items:center;gap:6px;padding:7px 18px;background:var(--accent);color:#ffffff;border:none;border-radius:7px;font-size:12px;font-weight:700;font-family:var(--font-head);cursor:pointer;transition:all .15s}
+.btn-send:hover:not(:disabled){background:#4338ca}
+.btn-send:disabled{opacity:.4;cursor:not-allowed}
+
+/* Response in drawer */
+.response-block{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;animation:fadeIn .3s ease}
+.response-answer{font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.response-thinking{color:var(--muted);font-style:italic;display:flex;align-items:center;gap:8px}
+
+.trace-mini{margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
+.trace-mini-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.trace-mini-item{font-family:var(--font-mono);font-size:11px;color:var(--blue);padding:3px 0;border-bottom:1px solid var(--border)}
+.trace-mini-item:last-child{border-bottom:none}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.spinner{display:inline-flex;gap:3px;align-items:center}
+.spinner span{width:4px;height:4px;border-radius:50%;background:var(--accent);animation:bounce 1.2s infinite}
+.spinner span:nth-child(2){animation-delay:.2s}
+.spinner span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">MCP<span>Hub</span></div>
+  <div class="sidebar-divider"></div>
+  <nav class="nav-section">
+    <a href="/" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Servers
+    </a>
+    <a href="/tools" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Tools
+    </a>
+    <a href="/demo" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Agent Demo
+    </a>
+    <a href="/agent" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Agent Chat
+    </a>
+    <a href="/web" class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>Marketplace
+    </a>
+    <a href="/backoffice" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Backoffice
+    </a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="hero" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+      <h1 class="hero-title">MCP <span>Marketplace</span></h1>
+      <p class="hero-sub">등록된 MCP 앱을 탐색하고 Agent를 통해 바로 사용해보세요.</p>
+    </div>
+    <button onclick="load()" style="margin-top:6px;background:none;border:1px solid var(--border);border-radius:7px;padding:7px 14px;font-size:12px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:var(--font-body)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>Refresh
+    </button>
+  </div>
+  <div class="app-grid" id="appGrid"></div>
+</main>
+
+<!-- Drawer -->
+<div class="drawer-overlay" id="overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="drawer-thumb" id="drawerThumb"></div>
+    <div class="drawer-info">
+      <div class="drawer-name" id="drawerName"></div>
+      <div class="drawer-desc" id="drawerDesc"></div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</div>
+
+<script>
+let currentApp = null;
+
+async function load() {
+  const res = await fetch('/api/mcp/apps/public');
+  const apps = await res.json();
+  const grid = document.getElementById('appGrid');
+
+  if (!apps.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-title">앱이 없습니다</div><div style="font-size:12px;margin-top:6px">백오피스에서 앱을 Visible 처리해주세요.</div></div>`;
+    return;
+  }
+  grid.innerHTML = apps.map(renderCard).join('');
+}
+
+function renderCard(app) {
+  const thumb = app.thumbnail
+    ? `<img src="${escHtml(app.thumbnail)}" alt="" onerror="this.style.display='none'">`
+    : `<div class="card-thumb-placeholder">⚡</div>`;
+  const tools = (app.tools || []).slice(0, 3).map(t =>
+    `<span class="tool-pill">${escHtml(t.name)}</span>`
+  ).join('') + (app.tools?.length > 3 ? `<span class="tool-pill">+${app.tools.length - 3}</span>` : '');
+
+  return `
+  <div class="app-card">
+    <div class="card-thumb">
+      ${thumb}
+      ${app.credit ? `<div class="card-credit">${app.credit} cr</div>` : ''}
+    </div>
+    <div class="card-body">
+      <div class="card-name">${escHtml(app.displayName || app.id)}</div>
+      <div class="card-desc">${escHtml(app.description || '설명 없음')}</div>
+      <div class="card-tools">${tools}</div>
+    </div>
+    <div class="card-footer">
+      <span class="card-meta">${(app.tools || []).length} tool${(app.tools||[]).length !== 1 ? 's' : ''}</span>
+      <button class="btn-use" onclick='openDrawer(${JSON.stringify(app)})'>
+        사용 →
+      </button>
+    </div>
+  </div>`;
+}
+
+function openDrawer(app) {
+  currentApp = app;
+
+  const thumbEl = document.getElementById('drawerThumb');
+  thumbEl.innerHTML = app.thumbnail
+    ? `<img src="${escHtml(app.thumbnail)}" alt="">`
+    : '⚡';
+
+  document.getElementById('drawerName').textContent = app.displayName || app.id;
+  document.getElementById('drawerDesc').textContent = app.description || '';
+
+  const toolsHtml = (app.tools || []).map(t => `
+    <div class="tool-card">
+      <div class="tool-card-name">${escHtml(t.name)}</div>
+      <div class="tool-card-desc">${escHtml(t.description || '')}</div>
+    </div>`).join('');
+
+  const toolOptions = (app.tools || []).map(t =>
+    `<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`
+  ).join('');
+
+  document.getElementById('drawerBody').innerHTML = `
+    <div>
+      <div class="section-label">사용 가능한 Tools</div>
+      ${toolsHtml || '<div style="color:var(--muted);font-size:12px">tool 없음</div>'}
+    </div>
+
+    <div>
+      <div class="section-label">직접 실행</div>
+      <div class="exec-section">
+        <select id="execToolSel" class="web-exec-select" onchange="onExecToolChange()">
+          <option value="">— Tool 선택 —</option>
+          ${toolOptions}
+        </select>
+        <div id="execParamsArea"></div>
+        <button class="btn-exec-direct" id="execRunBtn" onclick="runDirect()" disabled>▶ 실행</button>
+        <div class="exec-result-area" id="execResultArea"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Agent에게 질문하기</div>
+      <div class="chat-box">
+        <textarea id="drawerInput" class="chat-textarea" placeholder="예: 서울 날씨 알려줘 / spring-ai 레포 구조 알려줘" rows="3"></textarea>
+        <div class="chat-send-row">
+          <span class="chat-hint">이 앱의 tool을 Agent가 자동으로 선택합니다</span>
+          <button class="btn-send" id="drawerSendBtn" onclick="sendChat()">실행</button>
+        </div>
+      </div>
+    </div>
+    <div id="drawerOutput"></div>
+  `;
+
+  document.getElementById('drawerInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendChat();
+  });
+
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+  setTimeout(() => document.getElementById('drawerInput').focus(), 300);
+}
+
+function onExecToolChange() {
+  const toolName = document.getElementById('execToolSel').value;
+  const tool = (currentApp.tools || []).find(t => t.name === toolName);
+  const paramsEl = document.getElementById('execParamsArea');
+  const runBtn = document.getElementById('execRunBtn');
+
+  if (!tool) { paramsEl.innerHTML = ''; runBtn.disabled = true; return; }
+  runBtn.disabled = false;
+
+  const props = tool.inputSchema?.properties || {};
+  const required = tool.inputSchema?.required || [];
+  const keys = Object.keys(props);
+
+  if (!keys.length) {
+    paramsEl.innerHTML = '<div class="exec-no-param">파라미터 없음 — 바로 실행 가능합니다</div>';
+    return;
+  }
+
+  paramsEl.innerHTML = keys.map(k => {
+    const v = props[k];
+    const req = required.includes(k);
+    let input;
+    if (v.type === 'boolean') {
+      input = `<select id="wp_${k}" class="web-exec-input">
+        <option value="">— 미지정 —</option>
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select>`;
+    } else {
+      input = `<input id="wp_${k}" class="web-exec-input"
+        type="${['number','integer'].includes(v.type) ? 'number' : 'text'}"
+        placeholder="${escHtml(v.description || k)}">`;
+    }
+    return `<div class="web-exec-field">
+      <label class="web-exec-label">${escHtml(k)}${req ? '<span style="color:var(--red);margin-left:2px">*</span>' : ''}<span style="font-size:10px;color:var(--muted);margin-left:6px">${v.type || 'any'}</span></label>
+      ${input}
+    </div>`;
+  }).join('');
+}
+
+async function runDirect() {
+  const toolName = document.getElementById('execToolSel').value;
+  const tool = (currentApp.tools || []).find(t => t.name === toolName);
+  if (!tool) return;
+
+  const props = tool.inputSchema?.properties || {};
+  const required = tool.inputSchema?.required || [];
+  const args = {};
+
+  for (const [k, v] of Object.entries(props)) {
+    const el = document.getElementById('wp_' + k);
+    if (!el) continue;
+    const val = el.value;
+    if (val === '') {
+      if (required.includes(k)) {
+        el.focus();
+        el.style.borderColor = 'var(--red)';
+        setTimeout(() => el.style.borderColor = '', 1500);
+        return;
+      }
+      continue;
+    }
+    if (v.type === 'boolean') args[k] = val === 'true';
+    else if (v.type === 'number' || v.type === 'integer') args[k] = Number(val);
+    else args[k] = val;
+  }
+
+  const btn = document.getElementById('execRunBtn');
+  const resultEl = document.getElementById('execResultArea');
+  btn.disabled = true;
+  resultEl.className = 'exec-result-area';
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = '<span style="color:var(--muted);font-style:italic">처리 중...</span>';
+
+  try {
+    // 1. authorToken 발급 (stub — OAuth 서버 연동 후 URL 교체)
+    const authRes = await fetch('/api/auth/stub/author-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: 'web-user' })
+    });
+    const { authorToken } = await authRes.json();
+
+    // 2. 실행
+    const res = await fetch('/api/web/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appId: currentApp.id, authorToken, toolName, arguments: args })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const content = data.result?.content;
+    const text = Array.isArray(content)
+      ? content.map(c => c.type === 'text' ? c.text : JSON.stringify(c, null, 2)).join('\n')
+      : JSON.stringify(data.result, null, 2);
+
+    resultEl.className = 'exec-result-area ok';
+    resultEl.innerHTML = escHtml(text)
+      + (data.creditUsed ? `\n\n<span style="color:var(--amber)">credit 사용: ${data.creditUsed}</span>` : '');
+  } catch (e) {
+    resultEl.className = 'exec-result-area err';
+    resultEl.innerHTML = escHtml(e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function closeDrawer() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+  currentApp = null;
+}
+
+async function sendChat() {
+  const q = document.getElementById('drawerInput').value.trim();
+  if (!q) return;
+
+  const btn = document.getElementById('drawerSendBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"><span></span><span></span><span></span></span>';
+
+  const out = document.getElementById('drawerOutput');
+  const thinkId = 'think_' + Date.now();
+  out.insertAdjacentHTML('afterbegin', `
+    <div class="response-block" id="${thinkId}">
+      <div class="response-thinking">
+        <span class="spinner"><span></span><span></span><span></span></span>
+        처리 중...
+      </div>
+    </div>`);
+
+  try {
+    const res = await fetch('/agent/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q })
+    });
+    const data = await res.json();
+    document.getElementById(thinkId)?.remove();
+
+    const traceItems = (data.trace || []).map((t, i) =>
+      `<div class="trace-mini-item">${i + 1}. ${escHtml(t.toolName)} ← ${escHtml(t.server)}</div>`
+    ).join('');
+    const traceSection = traceItems ? `
+      <div class="trace-mini">
+        <div class="trace-mini-title">Tool Calls (${data.trace.length})</div>
+        ${traceItems}
+      </div>` : '';
+
+    out.insertAdjacentHTML('afterbegin', `
+      <div class="response-block">
+        <div class="response-answer">${escHtml(data.answer || '')}</div>
+        ${traceSection}
+      </div>`);
+  } catch (e) {
+    document.getElementById(thinkId)?.remove();
+    out.insertAdjacentHTML('afterbegin', `
+      <div class="response-block" style="border-color:rgba(220,38,38,.25)">
+        <div class="response-answer" style="color:var(--red)">${escHtml(e.message)}</div>
+      </div>`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '실행';
+  }
+}
+
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+load();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+</script>
+</body>
+</html>

@@ -1,8 +1,8 @@
-# Phase 3 - MCP 오케스트레이터 구축 및 통신 규약 검증
+﻿# Phase 3 - MCP 관리 서버 구축 및 통신 규약 검증
 
 ## 목표
 
-여러 MCP 서버를 단일 엔드포인트로 묶는 오케스트레이터를 구축하고, `mcp-communication-spec.md`에 정의한 통신 규약이 실제로 동작함을 검증한다.
+여러 MCP 서버를 단일 엔드포인트로 묶는 MCP 관리 서버를 구축하고, `mcp-communication-spec.md`에 정의한 통신 규약이 실제로 동작함을 검증한다.
 
 ---
 
@@ -14,7 +14,7 @@ mcp-test-server (포트 8081)      ← 통신 규약 준수 MCP 서버 (Spring A
   └─ POST /mcp  (initialize / tools/list / tools/call)
   └─ Tools: random, echo
 
-mcporchestrator (포트 8080)      ← MCP 오케스트레이터
+mcporchestrator (포트 8080)      ← MCP 관리 서버
   └─ POST   /api/mcp/servers/register   MCP 서버 등록
   └─ DELETE /api/mcp/servers/{id}       MCP 서버 삭제
   └─ GET    /api/mcp/servers            등록 서버 목록 조회
@@ -68,7 +68,7 @@ X-Mcp-Token: test-token-123
 
 ---
 
-### 2. tools/list (오케스트레이터 집계)
+### 2. tools/list (MCP 관리 서버 집계)
 
 ```http
 POST /mcp
@@ -91,7 +91,7 @@ POST /mcp
 [mcp-test-server] [Tool:random] range=1-100 result=14
 ```
 
-오케스트레이터(8080)가 tool 이름으로 소유 서버를 찾아 8081로 라우팅한다. `X-Mcp-Token`이 그대로 전파된다.
+MCP 관리 서버(8080)가 tool 이름으로 소유 서버를 찾아 8081로 라우팅한다. `X-Mcp-Token`이 그대로 전파된다.
 
 ---
 
@@ -130,7 +130,7 @@ DELETE /api/mcp/servers/{serverId}
 
 ## 산출물
 
-- `mcporchestrator` — MCP 오케스트레이터 (registry 패키지)
+- `mcporchestrator` — MCP 관리 서버 (registry 패키지)
 - `mcp-test-server` — 통신 규약 검증용 MCP 서버 (Spring AI 미사용)
 - `mcp-communication-spec.md` — 검증 완료된 통신 규약 (연구소 전달 가능 상태)
 

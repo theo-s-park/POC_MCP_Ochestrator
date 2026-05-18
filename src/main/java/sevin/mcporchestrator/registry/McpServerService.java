@@ -6,9 +6,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sevin.mcporchestrator.app.McpAppEntity;
 import sevin.mcporchestrator.app.McpAppRepository;
+import sevin.mcporchestrator.common.exception.McpServerNotFoundException;
 import sevin.mcporchestrator.registry.domain.CollectResult;
 import sevin.mcporchestrator.registry.domain.McpServerRecord;
 import sevin.mcporchestrator.registry.domain.ServerStatus;
+import sevin.mcporchestrator.registry.domain.ServerType;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -32,7 +34,7 @@ public class McpServerService {
         this.mcpAppRepository = mcpAppRepository;
     }
 
-    public McpServerRecord register(String name, String url, String description, String version) {
+    public McpServerRecord register(String name, String url, String description, String version, ServerType type) {
         Optional<McpServerRecord> existing = registry.findByUrl(url);
         String serverId = existing.map(McpServerRecord::getServerId)
             .orElse(UUID.randomUUID().toString());
@@ -45,21 +47,24 @@ public class McpServerService {
             .url(url)
             .description(description)
             .version(version)
+            .type(type)
             .status(ServerStatus.PENDING)
             .registeredAt(registeredAt)
             .healthCheckFailures(0)
             .build();
 
         registry.register(record);
-        log.info("[Registry] {}: {} ({})", existing.isPresent() ? "re-registered" : "registered", name, serverId);
+        log.info("[Registry] {}: {} ({}) type={}", existing.isPresent() ? "re-registered" : "registered", name, serverId, type);
 
-        for (McpCapabilityCollector collector : collectors) {
-            CollectResult result = collector.collect(serverId, url);
-            if (collector.isRequired() && result != CollectResult.SUCCESS) {
-                log.warn("[Registry] required collector {} returned {} - marking REGISTRATION_FAILED: {}",
-                    collector.method(), result, serverId);
-                registry.updateStatus(serverId, ServerStatus.REGISTRATION_FAILED);
-                return registry.find(serverId).orElse(record);
+        if (type == ServerType.MCP) {
+            for (McpCapabilityCollector collector : collectors) {
+                CollectResult result = collector.collect(serverId, url);
+                if (collector.isRequired() && result != CollectResult.SUCCESS) {
+                    log.warn("[Registry] required collector {} returned {} - marking REGISTRATION_FAILED: {}",
+                        collector.method(), result, serverId);
+                    registry.updateStatus(serverId, ServerStatus.REGISTRATION_FAILED);
+                    return registry.find(serverId).orElse(record);
+                }
             }
         }
 
@@ -94,11 +99,12 @@ public class McpServerService {
     }
 
     @Transactional
-    public boolean delete(String serverId) {
+    public void delete(String serverId) {
+        if (!registry.delete(serverId)) {
+            throw new McpServerNotFoundException();
+        }
         mcpAppRepository.deleteByMcpServerId(serverId);
-        boolean deleted = registry.delete(serverId);
-        if (deleted) log.info("[Registry] deleted: {}", serverId);
-        return deleted;
+        log.info("[Registry] deleted: {}", serverId);
     }
 
     public List<McpServerRecord> list() {

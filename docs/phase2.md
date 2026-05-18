@@ -1,4 +1,4 @@
-# Phase 2 - 서버/호스트 분리 및 MCP 프로토콜 경유 검증
+﻿# Phase 2 - 서버/호스트 분리 및 MCP 프로토콜 경유 검증
 
 ## 목표
 
@@ -101,8 +101,8 @@ LLM이 질문 내용을 분석하여 `mcp-tool-server`의 `random`과 `everythin
 |---|---|---|
 | tool 실행 위치 | mcporchestrator 인-프로세스 | mcp-tool-server 별도 프로세스 |
 | 통신 방식 | 직접 메서드 호출 | MCP JSON-RPC 2.0 (HTTP) |
-| MCP 프로토콜 경유 | ❌ | ✅ |
-| 외부 MCP 서버 연결 | ❌ | ✅ |
+| MCP 프로토콜 경유 | X | O |
+| 외부 MCP 서버 연결 | X | O |
 
 ---
 
@@ -111,10 +111,10 @@ LLM이 질문 내용을 분석하여 `mcp-tool-server`의 `random`과 `everythin
 - 분리된 `mcp-tool-server` (Spring Boot MCP Server)
 - 내부/외부 MCP 서버 tool을 통합 호출하는 `mcporchestrator` (Spring Boot MCP Client + LLM)
 
-이로써 **"LLM → MCP Client → HTTP → MCP Server"** 흐름이 실제로 동작함을 검증했다. 다음 단계는 여러 MCP 서버를 단일 엔드포인트로 묶는 오케스트레이터 구축이다.
+이로써 **"LLM → MCP Client → HTTP → MCP Server"** 흐름이 실제로 동작함을 검증했다. 다음 단계는 여러 MCP 서버를 단일 엔드포인트로 묶는 MCP 관리 서버 구축이다.
 
 ---
 
 ## 다음 단계
 
-→ [Phase 3](./phase3.md): MCP 오케스트레이터 구축
+→ [Phase 3](./phase3.md): MCP 관리 서버 구축

@@ -50,7 +50,15 @@ public class AgentService {
         if (tools.isEmpty()) {
             answer = chatClient.prompt().user(question).call().content();
         } else {
+            String systemPrompt = """
+                    당신은 MCP 도구 중재자입니다. 반드시 아래 규칙을 따르세요.
+                    1. 사용자의 질문에 답하기 위해 항상 제공된 tool을 사용하세요.
+                    2. 본인의 사전 학습 지식으로 추측하거나 답변하지 마세요.
+                    3. 적절한 tool이 없으면 "사용 가능한 tool로는 답변할 수 없습니다."라고만 하세요.
+                    4. tool 실행 결과를 그대로 사용자에게 전달하세요.
+                    """;
             answer = chatClient.prompt()
+                    .system(systemPrompt)
                     .user(question)
                     .toolCallbacks(tools.toArray(ToolCallback[]::new))
                     .call()

@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 500" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrGreen" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#059669"/>
+    </marker>
+    <marker id="arrRed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#dc2626"/>
+    </marker>
+    <filter id="sh" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-color="#00000020"/>
+    </filter>
+  </defs>
+
+  <rect width="820" height="500" fill="#f8fafc" rx="12"/>
+
+  <text x="410" y="34" text-anchor="middle" font-size="19" font-weight="700" fill="#1e293b">MCP 서버 등록 시퀀스</text>
+
+  <!-- Lifeline headers -->
+  <!-- Client -->
+  <rect x="40" y="55" width="150" height="46" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="115" y="74" text-anchor="middle" font-size="12" font-weight="600" fill="#1e293b">클라이언트</text>
+  <text x="115" y="92" text-anchor="middle" font-size="10" fill="#64748b">Apidog / CI/CD</text>
+
+  <!-- Orchestrator -->
+  <rect x="300" y="55" width="220" height="46" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="410" y="74" text-anchor="middle" font-size="12" font-weight="600" fill="#1d4ed8">MCP Orchestrator</text>
+  <text x="410" y="92" text-anchor="middle" font-size="10" fill="#3b82f6">:8080</text>
+
+  <!-- MCP Server -->
+  <rect x="620" y="55" width="170" height="46" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="705" y="74" text-anchor="middle" font-size="12" font-weight="600" fill="#166534">MCP 서버</text>
+  <text x="705" y="92" text-anchor="middle" font-size="10" fill="#16a34a">/health  /mcp</text>
+
+  <!-- Lifelines -->
+  <line x1="115" y1="101" x2="115" y2="480" stroke="#94a3b8" stroke-width="1" stroke-dasharray="5 4"/>
+  <line x1="410" y1="101" x2="410" y2="480" stroke="#3b82f6" stroke-width="1" stroke-dasharray="5 4"/>
+  <line x1="705" y1="101" x2="705" y2="480" stroke="#16a34a" stroke-width="1" stroke-dasharray="5 4"/>
+
+  <!-- Step 1: POST /register -->
+  <rect x="40" y="118" width="370" height="28" rx="0" fill="none"/>
+  <text x="30" y="130" font-size="11" font-weight="700" fill="#64748b">①</text>
+  <line x1="115" y1="132" x2="395" y2="132" stroke="#3b82f6" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="180" y="118" width="185" height="20" rx="4" fill="#dbeafe"/>
+  <text x="272" y="132" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1d4ed8">POST /api/mcp/servers/register</text>
+  <text x="272" y="153" text-anchor="middle" font-size="10" fill="#475569">{ name, url, version }</text>
+
+  <!-- Step 2: tools/list -->
+  <text x="30" y="192" font-size="11" font-weight="700" fill="#64748b">②</text>
+  <line x1="410" y1="188" x2="690" y2="188" stroke="#3b82f6" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="455" y="174" width="195" height="20" rx="4" fill="#dbeafe"/>
+  <text x="553" y="188" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1d4ed8">POST /mcp  —  tools/list  [필수]</text>
+
+  <!-- tools/list response OK -->
+  <line x1="690" y1="218" x2="425" y2="218" stroke="#059669" stroke-width="2" marker-end="url(#arrGreen)"/>
+  <rect x="455" y="204" width="205" height="20" rx="4" fill="#dcfce7"/>
+  <text x="558" y="218" text-anchor="middle" font-size="10.5" fill="#166534">{ tools: [ ... ] }  →  수집 완료</text>
+
+  <!-- tools/list FAIL branch note -->
+  <rect x="440" y="232" width="250" height="22" rx="4" fill="#fef2f2" stroke="#fca5a5" stroke-width="1"/>
+  <text x="565" y="247" text-anchor="middle" font-size="10" fill="#dc2626">실패 시 → REGISTRATION_FAILED 처리 후 종료</text>
+
+  <!-- Step 3: resources/list -->
+  <text x="30" y="285" font-size="11" font-weight="700" fill="#64748b">③</text>
+  <line x1="410" y1="282" x2="690" y2="282" stroke="#3b82f6" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="445" y="268" width="220" height="20" rx="4" fill="#dbeafe"/>
+  <text x="555" y="282" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1d4ed8">POST /mcp  —  resources/list  [선택]</text>
+
+  <!-- resources/list response -->
+  <line x1="690" y1="312" x2="425" y2="312" stroke="#059669" stroke-width="2" marker-end="url(#arrGreen)"/>
+  <rect x="440" y="298" width="230" height="20" rx="4" fill="#dcfce7"/>
+  <text x="555" y="312" text-anchor="middle" font-size="10.5" fill="#166534">{ resources: [ ... ] }  or  빈배열/오류 → 무시</text>
+
+  <!-- image/* thumbnail note -->
+  <rect x="440" y="326" width="250" height="22" rx="4" fill="#fefce8" stroke="#fde68a" stroke-width="1"/>
+  <text x="565" y="341" text-anchor="middle" font-size="10" fill="#92400e">mimeType: image/*  →  썸네일 자동 추출</text>
+
+  <!-- Step 4: Response to client -->
+  <text x="30" y="387" font-size="11" font-weight="700" fill="#64748b">④</text>
+  <line x1="395" y1="382" x2="130" y2="382" stroke="#059669" stroke-width="2" marker-end="url(#arrGreen)"/>
+  <rect x="170" y="368" width="200" height="20" rx="4" fill="#dcfce7"/>
+  <text x="270" y="382" text-anchor="middle" font-size="10.5" font-weight="600" fill="#166534">{ serverId, status: "ACTIVE" }</text>
+
+  <!-- Step 5: health check (ongoing) -->
+  <text x="30" y="430" font-size="11" font-weight="700" fill="#64748b">⑤</text>
+  <line x1="410" y1="425" x2="690" y2="425" stroke="#9333ea" stroke-width="1.5" stroke-dasharray="6 3" marker-end="url(#arr)"/>
+  <rect x="450" y="411" width="205" height="20" rx="4" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1"/>
+  <text x="553" y="425" text-anchor="middle" font-size="10" fill="#7e22ce">GET /health  (이후 60초 주기 반복)</text>
+
+  <!-- health response -->
+  <line x1="690" y1="455" x2="425" y2="455" stroke="#9333ea" stroke-width="1.5" stroke-dasharray="6 3" marker-end="url(#arr)"/>
+  <rect x="455" y="441" width="200" height="20" rx="4" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1"/>
+  <text x="555" y="455" text-anchor="middle" font-size="10" fill="#7e22ce">200 OK  →  ACTIVE 유지 / 3회 실패 → INACTIVE</text>
+
+  <!-- Footer note -->
+  <text x="410" y="490" text-anchor="middle" font-size="10" fill="#94a3b8">재등록: 동일 URL 재요청 시 serverId 유지 · tools/resources 최신화 · 앱 메타 보존</text>
+</svg>

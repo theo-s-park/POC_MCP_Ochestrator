@@ -70,9 +70,12 @@ public class McpToolCallback implements ToolCallback {
                     .body(String.class);
 
             String result = objectMapper.readTree(response).path("result").toString();
-            log.info("[Agent][{}] tool result <- {} | result={}", sessionId, tool.getName(), result);
-            trace.add(new AgentResponse.ToolTrace(tool.getName(), server.getName(), args.toString(), result));
-            return result;
+            String truncated = result.length() > 6000
+                    ? result.substring(0, 6000) + "... [truncated]"
+                    : result;
+            log.info("[Agent][{}] tool result <- {} | len={}", sessionId, tool.getName(), result.length());
+            trace.add(new AgentResponse.ToolTrace(tool.getName(), server.getName(), args.toString(), truncated));
+            return truncated;
 
         } catch (Exception e) {
             log.error("[Agent][{}] tool error - {} | {}", sessionId, tool.getName(), e.getMessage());

@@ -1,34 +1,52 @@
 package sevin.mcporchestrator.registry;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestClient;
 import sevin.mcporchestrator.app.McpAppEntity;
 import sevin.mcporchestrator.app.McpAppRepository;
+import sevin.mcporchestrator.common.exception.McpServerNotFoundException;
 import sevin.mcporchestrator.registry.domain.McpServerRecord;
+import sevin.mcporchestrator.registry.domain.ServerType;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Tag(name = "MCP Servers", description = "MCP 서버 등록·조회·삭제 및 capability probe")
 @RestController
 @RequestMapping("/api/mcp/servers")
 public class McpServerController {
 
     private final McpServerService service;
     private final McpAppRepository mcpAppRepository;
+    private final McpServerRegistry registry;
+    private final ObjectMapper objectMapper;
+    private final RestClient restClient;
 
-    public McpServerController(McpServerService service, McpAppRepository mcpAppRepository) {
+    public McpServerController(McpServerService service, McpAppRepository mcpAppRepository,
+                               McpServerRegistry registry, ObjectMapper objectMapper) {
         this.service = service;
         this.mcpAppRepository = mcpAppRepository;
+        this.registry = registry;
+        this.objectMapper = objectMapper;
+        this.restClient = RestClient.builder()
+            .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory())
+            .build();
     }
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest request) {
+        ServerType type = request.getType() != null ? request.getType() : ServerType.MCP;
         McpServerRecord record = service.register(
             request.getName(), request.getUrl(),
-            request.getDescription(), request.getVersion()
+            request.getDescription(), request.getVersion(), type
         );
         return ResponseEntity.ok(Map.of(
             "serverId", record.getServerId(),
@@ -38,9 +56,7 @@ public class McpServerController {
 
     @DeleteMapping("/{serverId}")
     public ResponseEntity<Map<String, Object>> delete(@PathVariable String serverId) {
-        if (!service.delete(serverId)) {
-            return ResponseEntity.notFound().build();
-        }
+        service.delete(serverId);
         return ResponseEntity.ok(Map.of("status", "ok"));
     }
 
@@ -89,7 +105,31 @@ public class McpServerController {
         m.put("credit", app != null ? app.getCredit() : 0);
         m.put("appDescription", app != null ? app.getDescription() : null);
         m.put("isVisible", app != null && app.isVisible());
+        m.put("type", s.getType() != null ? s.getType().name() : "MCP");
         return m;
+    }
+
+    /** 특정 서버에 tools/list 또는 resources/list 를 실시간으로 호출해 결과 반환 */
+    @GetMapping("/{serverId}/probe")
+    public ResponseEntity<JsonNode> probe(
+            @PathVariable String serverId,
+            @RequestParam String method) throws Exception {
+
+        McpServerRecord server = registry.find(serverId)
+            .orElseThrow(McpServerNotFoundException::new);
+
+        Map<String, Object> req = Map.of(
+            "jsonrpc", "2.0", "id", 1, "method", method, "params", Map.of()
+        );
+
+        String body = restClient.post()
+            .uri(server.getUrl() + "/mcp")
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(objectMapper.writeValueAsString(req))
+            .retrieve()
+            .body(String.class);
+
+        return ResponseEntity.ok(objectMapper.readTree(body));
     }
 
     @Data
@@ -98,5 +138,6 @@ public class McpServerController {
         private String url;
         private String description;
         private String version;
+        private ServerType type;
     }
 }

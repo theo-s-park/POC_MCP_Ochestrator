@@ -2,23 +2,24 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Agent Chat — MCP Orchestrator</title>
+<title>Agent Chat — MCP Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#070809;--surface:#0e1015;--surface2:#13161e;--surface3:#1a1e28;
-  --border:rgba(255,255,255,0.06);--border-hi:rgba(255,255,255,0.13);
-  --text:#dde3ec;--muted:#5a6478;--subtle:#2a303d;
-  --accent:#00e5a0;--accent-d:rgba(0,229,160,0.12);
-  --blue:#4d9cff;--blue-d:rgba(77,156,255,0.12);
-  --amber:#f5a623;--red:#ff5f5f;
+  --bg:#f5f7fa;--surface:#ffffff;--surface2:#f3f4f6;--surface3:#eaecef;
+  --border:rgba(0,0,0,0.08);--border-hi:rgba(0,0,0,0.16);
+  --text:#111827;--muted:#6b7280;--subtle:#c4c8d0;
+  --accent:#4f46e5;--accent-d:rgba(79,70,229,0.08);
+  --blue:#2563eb;--blue-d:rgba(37,99,235,0.10);
+  --amber:#d97706;--red:#dc2626;
+  --green:#16a34a;--green-d:rgba(22,163,74,0.10);
   --sidebar-w:228px;--radius:10px;
   --font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;
 }
 body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;display:flex;min-height:100vh}
-body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radial-gradient(circle,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:28px 28px}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radial-gradient(circle,rgba(0,0,0,0.04) 1px,transparent 1px);background-size:28px 28px}
 .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
 .sidebar-logo{padding:28px 24px 24px;font-family:var(--font-head);font-size:22px;font-weight:800;letter-spacing:-.5px}
 .sidebar-logo span{color:var(--accent)}
@@ -28,47 +29,43 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radia
 .nav-item:hover{background:var(--surface2);color:var(--text)}
 .nav-item.active{background:var(--accent-d);color:var(--accent)}
 .nav-icon{width:16px;height:16px;flex-shrink:0}
-.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
-.token-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-.token-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-family:var(--font-mono);font-size:11px;outline:none;transition:border .15s}
-.token-input:focus{border-color:var(--accent)}
 
 .main{margin-left:var(--sidebar-w);flex:1;padding:36px 40px;display:flex;flex-direction:column;max-width:960px}
 .page-title{font-family:var(--font-head);font-size:28px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px}
 .page-subtitle{color:var(--muted);font-size:13px;margin-bottom:32px}
 
 /* ── Input area ── */
-.chat-input-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:24px;transition:border-color .2s}
-.chat-input-wrap:focus-within{border-color:var(--accent)}
+.chat-input-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:24px;transition:border-color .2s,box-shadow .2s;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.chat-input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-d)}
 .chat-textarea{width:100%;background:transparent;border:none;outline:none;padding:18px 20px;color:var(--text);font-family:var(--font-body);font-size:14px;resize:none;min-height:100px;line-height:1.6}
 .chat-textarea::placeholder{color:var(--subtle)}
-.chat-input-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.chat-input-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface2)}
 .chat-hint{font-size:11px;color:var(--muted)}
-.btn-send{display:inline-flex;align-items:center;gap:6px;padding:8px 20px;background:var(--accent);color:#051a12;border:none;border-radius:7px;font-size:13px;font-weight:600;font-family:var(--font-head);cursor:pointer;transition:all .15s;letter-spacing:.03em}
-.btn-send:hover:not(:disabled){background:#00ffb2;box-shadow:0 4px 20px rgba(0,229,160,.3);transform:translateY(-1px)}
+.btn-send{display:inline-flex;align-items:center;gap:6px;padding:8px 20px;background:var(--accent);color:#ffffff;border:none;border-radius:7px;font-size:13px;font-weight:600;font-family:var(--font-head);cursor:pointer;transition:all .15s;letter-spacing:.03em}
+.btn-send:hover:not(:disabled){background:#4338ca;box-shadow:0 4px 20px rgba(79,70,229,.25);transform:translateY(-1px)}
 .btn-send:disabled{opacity:.4;cursor:not-allowed}
 
 /* ── Response card ── */
-.response-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;animation:fadeIn .3s ease}
+.response-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;animation:fadeIn .3s ease;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.response-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.response-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface2)}
 .session-badge{font-family:var(--font-mono);font-size:11px;background:var(--accent-d);color:var(--accent);padding:3px 8px;border-radius:4px;letter-spacing:.04em}
 .response-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
 .response-body{padding:20px;line-height:1.7;font-size:14px;white-space:pre-wrap;word-break:break-word}
 .response-body.thinking{color:var(--muted);font-style:italic}
 
 /* ── Tool trace ── */
-.trace-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.trace-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.trace-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.trace-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;background:var(--surface2)}
 .trace-title{font-family:var(--font-head);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
 .trace-count{font-family:var(--font-mono);font-size:11px;background:var(--blue-d);color:var(--blue);padding:2px 7px;border-radius:4px}
 .trace-toggle{font-size:11px;color:var(--muted)}
 .trace-list{padding:0}
-.trace-item{border-bottom:1px solid var(--border);last-child{border-bottom:none}}
+.trace-item{border-bottom:1px solid var(--border)}
 .trace-item:last-child{border-bottom:none}
 .trace-item-header{padding:12px 20px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;transition:background .15s}
 .trace-item-header:hover{background:var(--surface2)}
-.trace-step{width:20px;height:20px;border-radius:50%;background:var(--surface3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;color:var(--muted);flex-shrink:0}
+.trace-step{width:20px;height:20px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;color:var(--muted);flex-shrink:0}
 .trace-tool-name{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--accent);flex:1}
 .trace-server-name{font-size:11px;color:var(--muted)}
 .trace-chevron{font-size:10px;color:var(--subtle);transition:transform .2s}
@@ -80,9 +77,14 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radia
 .trace-block-body.args{color:var(--blue)}
 .trace-block-body.result{color:var(--accent)}
 
+/* ── JSON highlight ── */
+.json-key{color:var(--blue)}
+.json-str{color:var(--accent)}
+.json-num{color:var(--amber)}
+
 /* ── Empty / loading ── */
 .empty-state{padding:60px 20px;text-align:center;color:var(--muted)}
-.empty-icon{font-size:36px;margin-bottom:12px;opacity:.3}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:.25}
 .empty-text{font-size:13px;opacity:.5}
 
 /* ── Spinner ── */
@@ -95,7 +97,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radia
 </head>
 <body>
 <aside class="sidebar">
-  <div class="sidebar-logo">MCP<span>orch</span></div>
+  <div class="sidebar-logo">MCP<span>Hub</span></div>
   <div class="sidebar-divider"></div>
   <nav class="nav-section">
     <a href="/" class="nav-item">
@@ -110,14 +112,13 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radia
     <a href="/agent" class="nav-item active">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 7v2M12 11h.01"/></svg>Agent Chat
     </a>
+    <a href="/web" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>Marketplace
+    </a>
     <a href="/backoffice" class="nav-item">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Backoffice
     </a>
   </nav>
-  <div class="sidebar-footer">
-    <div class="token-label">Token</div>
-    <input id="globalToken" class="token-input" value="test-token-123">
-  </div>
 </aside>
 
 <main class="main">
@@ -152,7 +153,6 @@ async function sendQuestion() {
   btn.innerHTML = '<span class="spinner"><span></span><span></span><span></span></span>';
 
   const out = document.getElementById('outputArea');
-  // Insert a thinking card at the top
   const thinkId = 'think_' + Date.now();
   out.insertAdjacentHTML('afterbegin', `
     <div class="response-card" id="${thinkId}">
@@ -257,7 +257,7 @@ function toggleTraceSection(header) {
 
 function renderError(msg) {
   document.getElementById('outputArea').insertAdjacentHTML('afterbegin', `
-    <div class="response-card" style="border-color:rgba(255,95,95,.3);animation:fadeIn .3s ease;margin-bottom:16px">
+    <div class="response-card" style="border-color:rgba(220,38,38,.25);animation:fadeIn .3s ease;margin-bottom:16px">
       <div class="response-header">
         <span style="font-size:11px;color:var(--red);text-transform:uppercase;letter-spacing:.07em">Error</span>
       </div>
@@ -280,8 +280,8 @@ function copyTrace(btn, trace) {
   navigator.clipboard.writeText(text).then(() => {
     const orig = btn.textContent;
     btn.textContent = 'copied!';
-    btn.style.color = 'var(--accent)';
-    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
     setTimeout(() => { btn.textContent = orig; btn.style.color = ''; btn.style.borderColor = ''; }, 1500);
   });
 }

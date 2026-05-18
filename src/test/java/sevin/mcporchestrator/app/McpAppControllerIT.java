@@ -104,4 +104,26 @@ class McpAppControllerIT {
         assertThat(body).contains("Server App");
         assertThat(body).contains(serverId);
     }
+
+    @Test
+    void getApp_existingId_returnsApp() throws Exception {
+        McpAppEntity app = mcpAppRepository.findById(appId).orElseThrow();
+        app.setDisplayName("단건 앱");
+        app.setCredit(7);
+        mcpAppRepository.save(app);
+
+        String body = mockMvc.perform(get("/api/mcp/apps/" + appId))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        assertThat(body).contains(appId);
+        assertThat(body).contains("단건 앱");
+        assertThat(body).contains("7");
+    }
+
+    @Test
+    void getApp_unknownId_returns404() throws Exception {
+        mockMvc.perform(get("/api/mcp/apps/non-existent-id"))
+            .andExpect(status().isNotFound());
+    }
 }

@@ -13,8 +13,7 @@ public record McpAppView(
     String thumbnail,
     int credit,
     String description,
-    boolean isVisible,
-    String serverDescription
+    boolean isVisible
 ) {
     public static McpAppView of(McpAppEntity app, McpServerRecord server) {
         return new McpAppView(
@@ -27,8 +26,7 @@ public record McpAppView(
             app.getThumbnail(),
             app.getCredit(),
             app.getDescription(),
-            app.isVisible(),
-            server != null ? server.getDescription() : null
+            app.isVisible()
         );
     }
 }

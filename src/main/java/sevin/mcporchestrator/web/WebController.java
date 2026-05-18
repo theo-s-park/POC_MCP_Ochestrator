@@ -20,4 +20,7 @@ public class WebController {
 
     @GetMapping("/backoffice")
     public String backoffice() { return "backoffice"; }
+
+    @GetMapping("/web")
+    public String web() { return "web"; }
 }

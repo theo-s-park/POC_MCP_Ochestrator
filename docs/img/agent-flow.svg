@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 620" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arrDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 0, 5 7" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrUp" markerWidth="10" markerHeight="7" refX="5" refY="0" orient="auto">
+      <polygon points="0 7, 10 7, 5 0" fill="#059669"/>
+    </marker>
+    <marker id="arrRight" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrLeft" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto">
+      <polygon points="10 0, 0 3.5, 10 7" fill="#059669"/>
+    </marker>
+    <filter id="sh" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-color="#00000022"/>
+    </filter>
+  </defs>
+
+  <rect width="700" height="620" fill="#f8fafc" rx="12"/>
+  <text x="350" y="34" text-anchor="middle" font-size="19" font-weight="700" fill="#1e293b">Agent Tool 실행 흐름</text>
+
+  <!-- Step boxes (left column flow) -->
+
+  <!-- 1: 사용자 질문 -->
+  <rect x="200" y="55" width="300" height="52" rx="10" fill="#7c3aed" filter="url(#sh)"/>
+  <text x="350" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">사용자 질문</text>
+  <text x="350" y="97" text-anchor="middle" font-size="11" fill="#ddd8fe">POST /agent/chat  { "question": "서울 날씨 알려줘" }</text>
+
+  <line x1="350" y1="107" x2="350" y2="130" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrDown)"/>
+
+  <!-- 2: AgentService -->
+  <rect x="150" y="130" width="400" height="58" rx="10" fill="#1d4ed8" filter="url(#sh)"/>
+  <text x="350" y="153" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">AgentService</text>
+  <text x="350" y="172" text-anchor="middle" font-size="10.5" fill="#bfdbfe">ACTIVE 서버 필터링 → 전체 Tool 목록 로드 (중복 제거)</text>
+
+  <line x1="350" y1="188" x2="350" y2="210" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrDown)"/>
+
+  <!-- 3: LLM -->
+  <rect x="130" y="210" width="440" height="75" rx="10" fill="#0f172a" filter="url(#sh)"/>
+  <text x="350" y="235" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">LLM  (GPT-4o-mini)</text>
+  <text x="350" y="255" text-anchor="middle" font-size="10.5" fill="#94a3b8">System: "반드시 제공된 tool 사용. 자체 지식 답변 금지."</text>
+  <text x="350" y="272" text-anchor="middle" font-size="10.5" fill="#94a3b8">적합한 Tool 선택 + 파라미터 결정</text>
+
+  <line x1="350" y1="285" x2="350" y2="308" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrDown)"/>
+
+  <!-- 4: McpToolCallback -->
+  <rect x="170" y="308" width="360" height="52" rx="10" fill="#0369a1" filter="url(#sh)"/>
+  <text x="350" y="330" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">McpToolCallback</text>
+  <text x="350" y="349" text-anchor="middle" font-size="10.5" fill="#bae6fd">tools/call 요청 직렬화  |  결과 6000자 초과 → truncate</text>
+
+  <!-- Arrows to/from MCP Server (right side) -->
+  <line x1="530" y1="334" x2="600" y2="334" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrRight)"/>
+  <line x1="600" y1="355" x2="530" y2="355" stroke="#059669" stroke-width="2" marker-end="url(#arrLeft)"/>
+
+  <!-- MCP Server box on right -->
+  <rect x="600" y="295" width="85" height="100" rx="8" fill="#065f46" filter="url(#sh)"/>
+  <text x="642" y="325" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">MCP</text>
+  <text x="642" y="340" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">서버</text>
+  <text x="642" y="360" text-anchor="middle" font-size="9" fill="#6ee7b7">tools</text>
+  <text x="642" y="374" text-anchor="middle" font-size="9" fill="#6ee7b7">/call</text>
+
+  <!-- Label on arrows -->
+  <text x="565" y="329" text-anchor="middle" font-size="9" fill="#3b82f6">요청</text>
+  <text x="565" y="375" text-anchor="middle" font-size="9" fill="#059669">결과</text>
+
+  <line x1="350" y1="360" x2="350" y2="383" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrDown)"/>
+
+  <!-- 5: LLM summarize -->
+  <rect x="150" y="383" width="400" height="52" rx="10" fill="#1e3a5f" filter="url(#sh)"/>
+  <text x="350" y="406" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">LLM — 결과 자연어 정리</text>
+  <text x="350" y="424" text-anchor="middle" font-size="10.5" fill="#93c5fd">tool 결과를 사용자가 이해할 수 있는 문장으로 변환</text>
+
+  <line x1="350" y1="435" x2="350" y2="458" stroke="#059669" stroke-width="2" marker-end="url(#arrDown)"/>
+
+  <!-- 6: AgentResponse -->
+  <rect x="170" y="458" width="360" height="80" rx="10" fill="#064e3b" filter="url(#sh)"/>
+  <text x="350" y="480" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">AgentResponse</text>
+  <text x="350" y="498" text-anchor="middle" font-size="10" fill="#6ee7b7">sessionId  |  question  |  answer</text>
+  <text x="350" y="515" text-anchor="middle" font-size="10" fill="#6ee7b7">trace[ { toolName, server, args, result } ]</text>
+
+  <line x1="350" y1="538" x2="350" y2="560" stroke="#059669" stroke-width="2" marker-end="url(#arrDown)"/>
+
+  <!-- 7: User -->
+  <rect x="200" y="560" width="300" height="42" rx="10" fill="#7c3aed" filter="url(#sh)"/>
+  <text x="350" y="578" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">사용자에게 반환</text>
+  <text x="350" y="594" text-anchor="middle" font-size="10" fill="#ddd8fe">answer + trace (Web UI / API)</text>
+
+  <!-- No tool case side note -->
+  <rect x="18" y="210" width="120" height="75" rx="8" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.2"/>
+  <text x="78" y="230" text-anchor="middle" font-size="10" font-weight="600" fill="#dc2626">Tool 없을 때</text>
+  <text x="78" y="248" text-anchor="middle" font-size="10" fill="#b91c1c">"사용 가능한</text>
+  <text x="78" y="263" text-anchor="middle" font-size="10" fill="#b91c1c"> tool로는 답변할</text>
+  <text x="78" y="278" text-anchor="middle" font-size="10" fill="#b91c1c">수 없습니다."</text>
+  <line x1="130" y1="247" x2="150" y2="247" stroke="#fca5a5" stroke-width="1" stroke-dasharray="4 3"/>
+
+  <!-- Step numbers -->
+  <circle cx="188" cy="81" r="13" fill="#fff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="188" y="86" text-anchor="middle" font-size="11" font-weight="700" fill="#7c3aed">1</text>
+  <circle cx="138" cy="159" r="13" fill="#fff" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="138" y="164" text-anchor="middle" font-size="11" font-weight="700" fill="#1d4ed8">2</text>
+  <circle cx="118" cy="247" r="13" fill="#fff" stroke="#334155" stroke-width="1.5"/>
+  <text x="118" y="252" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">3</text>
+  <circle cx="158" cy="334" r="13" fill="#fff" stroke="#0369a1" stroke-width="1.5"/>
+  <text x="158" y="339" text-anchor="middle" font-size="11" font-weight="700" fill="#0369a1">4</text>
+  <circle cx="138" cy="409" r="13" fill="#fff" stroke="#1e3a5f" stroke-width="1.5"/>
+  <text x="138" y="414" text-anchor="middle" font-size="11" font-weight="700" fill="#1e3a5f">5</text>
+  <circle cx="158" cy="498" r="13" fill="#fff" stroke="#064e3b" stroke-width="1.5"/>
+  <text x="158" y="503" text-anchor="middle" font-size="11" font-weight="700" fill="#064e3b">6</text>
+
+  <text x="350" y="612" text-anchor="middle" font-size="10" fill="#94a3b8">* 다중 Tool 호출 가능  |  각 Tool 결과 6000자 초과 시 자동 truncate  |  trace 배열에 실행 이력 기록</text>
+</svg>

@@ -35,6 +35,9 @@ public class TestMcpServerController {
     @SuppressWarnings("unchecked")
     @PostMapping("/mcp")
     public ResponseEntity<Map<String, Object>> handleMcp(@RequestBody Map<String, Object> body) {
+        if (!state.isHealthy()) {
+            return ResponseEntity.status(503).body(Map.of("error", "service unavailable"));
+        }
         String method = (String) body.get("method");
         Object id = body.get("id");
 
