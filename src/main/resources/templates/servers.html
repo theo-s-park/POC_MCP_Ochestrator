@@ -94,7 +94,7 @@ body::before {
 .register-panel.open { max-height: 200px; margin-bottom: 24px; }
 .register-inner { padding: 24px; }
 .register-title { font-family: var(--font-head); font-size: 15px; font-weight: 600; margin-bottom: 16px; }
-.form-grid { display: grid; grid-template-columns: 1fr 1.5fr 1fr .6fr auto; gap: 10px; align-items: end; }
+.form-grid { display: grid; grid-template-columns: 1fr 1.5fr 1fr .6fr .5fr auto; gap: 10px; align-items: end; }
 .form-group label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 5px; }
 .form-input {
   width: 100%; background: var(--surface2); border: 1px solid var(--border);
@@ -262,6 +262,7 @@ body::before {
         <div class="form-group"><label>URL</label><input id="rUrl" class="form-input" placeholder="http://localhost:8081"></div>
         <div class="form-group"><label>Description</label><input id="rDesc" class="form-input" placeholder="optional"></div>
         <div class="form-group"><label>Version</label><input id="rVer" class="form-input" value="0.0.1"></div>
+        <div class="form-group"><label>Type</label><select id="rType" class="form-input"><option value="MCP">MCP</option><option value="WEBAPP">WEBAPP</option></select></div>
         <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="register()" style="width:100%">Register</button></div>
       </div>
       <div id="registerMsg" class="register-msg"></div>
@@ -370,7 +371,7 @@ async function load() {
 }
 
 async function register() {
-  const body = { name: document.getElementById('rName').value, url: document.getElementById('rUrl').value, description: document.getElementById('rDesc').value, version: document.getElementById('rVer').value };
+  const body = { name: document.getElementById('rName').value, url: document.getElementById('rUrl').value, description: document.getElementById('rDesc').value, version: document.getElementById('rVer').value, type: document.getElementById('rType').value };
   const msg = document.getElementById('registerMsg');
   if (!body.name || !body.url) { msg.innerHTML = '<span class="msg-err">Name and URL are required.</span>'; return; }
   const res = await fetch('/api/mcp/servers/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
