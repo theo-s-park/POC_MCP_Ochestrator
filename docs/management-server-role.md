@@ -1,12 +1,8 @@
 # MCP 관리 서버 — 역할과 구조
 
-> 작성일: 2026-05-18 · 대상: 개발팀 / 발표용
-
 ---
 
-## 배경 — MCP 전송 방식과 우리가 HTTP를 선택한 이유
-
-### MCP의 두 가지 전송 방식
+## MCP 전송 방식과 우리가 HTTP를 선택한 이유
 
 MCP(Model Context Protocol)는 LLM이 외부 툴을 호출하는 방식을 표준화한 프로토콜이다.  
 전송 방식은 두 가지가 있다.
@@ -41,6 +37,17 @@ POST /mcp      → JSON-RPC 2.0         ← 실제 툴 호출 진입점
 **`/health`** — 관리 서버가 60초마다 호출해 서버가 살아있는지 확인한다. 3회 연속 실패하면 `INACTIVE`로 전환되어 라우팅 대상에서 제외된다.
 
 **`/mcp`** — MCP 표준 엔드포인트. `tools/list`, `tools/call`, `resources/list` 등 모든 JSON-RPC 메서드를 이 하나의 경로로 받는다. Vercel, DeepWiki 같은 공개 서버도 동일한 경로를 사용하기 때문에, 우리 관리 서버는 외부 공개 MCP 서버도 **그대로 등록해서 사용**할 수 있다.
+
+### 전송 방식과 관리 서버의 관계
+
+현재 POC는 EC2에 HTTP 방식으로 배포되어 있고, WEB 사용자는 HTTP를 통해 관리 서버에 요청한다.
+
+추후 Claude Code나 Cursor 같은 로컬 IDE에 연동한다면 **stdio 방식**을 그대로 쓰면 된다. 단, 그 경우 **이 관리 서버는 필요 없다.** stdio는 클라이언트(IDE)가 MCP 서버를 직접 프로세스로 실행하고 1:1로 통신하기 때문에, 중간에서 라우팅·인증을 처리하는 관리 서버가 끼어들 자리가 없다.
+
+| 사용 시나리오 | 전송 방식 | 관리 서버 필요 여부 |
+|---|---|---|
+| WEB 사용자 → 서비스 툴 실행 (현재 POC) | HTTP | 필요 |
+| Claude Code / Cursor 로컬 연동 | stdio | 불필요 |
 
 ---
 
@@ -249,23 +256,3 @@ curl http://3.34.126.190:8080/api/mcp/apps/public
 ```
 
 `isVisible=true`가 된 앱만 `GET /api/mcp/apps/public`에 노출된다.
-
----
-
-## 현재 구현 상태
-
-| 항목 | 상태 |
-|---|---|
-| MCP 프로토콜 (JSON-RPC 2.0, Streamable HTTP) | ✅ 완료 |
-| 서버 등록 / 삭제 / 헬스체크 폴링 | ✅ 완료 |
-| tools/list · resources/list 자동 수집 | ✅ 완료 |
-| 툴 라우팅 (toolName → 서버 포워딩) | ✅ 완료 |
-| 실시간 Probe API | ✅ 완료 |
-| LLM 자동 툴 선택 (GPT-4o-mini) | ✅ 완료 |
-| DB 영속화 (H2 파일 모드) | ✅ 완료 |
-| Backoffice 앱 메타데이터 관리 | ✅ 완료 |
-| WEB 공개 API + Wrapper 응답 | ✅ 완료 |
-| MCP Proxy (외부 MCP 서버 연결) | ✅ 완료 |
-| OAuth 임시토큰 교환 | 🔧 구현 중 |
-| 크레딧 차감 연동 (외부 크레딧 서버) | ⏳ API 스펙 확정 후 |
-
