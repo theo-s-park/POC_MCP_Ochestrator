@@ -101,3 +101,56 @@ sequenceDiagram
 > **범례**: 실선(`->>`) = 요청/호출 · 점선(`-->>`) = 응답/반환  
 > `← MCP 표준 응답` = MCP JSON-RPC 2.0 원본 구조 (변경 불가)  
 > `← Wrapper 응답` = MCP 관리 서버가 감싸는 상위 객체
+
+---
+
+## Flow 3: OAuth 임시 토큰 교환 → MCP 서버 실행
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant USER as 사용자 (Client)
+    participant OAUTH as OAuth 서버
+    participant MCP as MCP 관리 서버
+    participant SRV as MCP 서버
+    participant CREDIT as 크레딧 서버
+
+    rect rgb(255, 243, 191)
+        note over USER,OAUTH: 🔑 임시 토큰 발급
+        USER->>OAUTH: 인증 요청 (clientId, scope)
+        OAUTH-->>USER: 임시 토큰 발급 (tempToken, expires_in)
+    end
+
+    rect rgb(235, 251, 238)
+        note over USER,MCP: 📨 관리 서버 요청
+        USER->>MCP: POST /agent/chat<br/>{ question, tempToken }
+    end
+
+    rect rgb(227, 250, 252)
+        note over MCP,OAUTH: 🔄 Access Token 교환
+        MCP->>OAUTH: POST /token/exchange { tempToken }
+        note over OAUTH: 임시 토큰 검증
+        OAUTH-->>MCP: { accessToken, expiresIn }
+    end
+
+    rect rgb(255, 227, 227)
+        note over MCP,SRV: ⚙️ MCP 서버 Tool 실행
+        MCP->>SRV: POST /mcp (JSON-RPC 2.0)<br/>Authorization: Bearer {accessToken}
+        note over SRV: Tool 실행
+        SRV-->>MCP: { content: [...] }
+    end
+
+    rect rgb(243, 240, 255)
+        note over SRV,CREDIT: 💳 크레딧 차감 (정책 미정 — MCP 서버 직접 호출 유력)
+        SRV->>CREDIT: POST /credits/deduct { userId, toolId }
+        CREDIT-->>SRV: { ok }
+    end
+
+    rect rgb(235, 251, 238)
+        note over MCP,USER: 📬 최종 응답 반환
+        MCP-->>USER: { answer, creditUsed, trace }
+    end
+```
+
+> **크레딧 차감 정책**: 현재 미정. MCP 서버가 크레딧 서버를 직접 호출하는 방식이 유력.
+

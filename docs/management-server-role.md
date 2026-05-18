@@ -65,11 +65,14 @@ tools/call { name: "hwpx_to_pdf", args: {...} }
 
 ### 4. 크레딧 차감
 
-MCP 서버에서 성공 응답을 받은 **이후** 크레딧을 차감한다.  
-실패 시에는 차감하지 않는다.
+> **정책 미정** — MCP 서버가 크레딧 서버를 직접 호출하는 방식이 유력.
+
+현재 유력한 흐름: MCP 서버가 Tool 실행 성공 후 크레딧 서버를 직접 호출한다.  
+관리 서버는 크레딧 차감에 개입하지 않는다.
 
 ```
-MCP 서버 성공 응답 → POST /credits/deduct { userId, toolId } → 크레딧 서버
+MCP 서버 Tool 실행 성공
+    → POST /credits/deduct { userId, toolId } → 크레딧 서버 (MCP 서버가 직접)
 ```
 
 ### 5. WEB 공개 앱 래퍼 (Wrapper)
@@ -108,7 +111,9 @@ flowchart TD
     MCP -- "④ tools/call + Bearer AT" --> HWP
     MCP -- "④ tools/call + Bearer AT" --> PDF
     MCP -- "④ tools/call + Bearer AT" --> AI
-    MCP -- "⑤ 크레딧 차감" --> CREDIT
+    HWP -. "⑤ 크레딧 차감 (정책 미정)" .-> CREDIT
+    PDF -. "⑤ 크레딧 차감 (정책 미정)" .-> CREDIT
+    AI -. "⑤ 크레딧 차감 (정책 미정)" .-> CREDIT
     MCP -- "⑥ 결과 래핑 반환" --> USER
     BO -- "앱 메타 설정" --> MCP
 ```
@@ -307,14 +312,3 @@ curl http://3.34.126.190:8080/api/mcp/apps/public
 | OAuth 임시토큰 교환 | 🔧 구현 중 |
 | 크레딧 차감 연동 (외부 크레딧 서버) | ⏳ API 스펙 확정 후 |
 
----
-
-## 관련 문서
-
-| 문서 | 내용 |
-|---|---|
-| [api-spec.md](./api-spec.md) | 전체 API 명세 (요청/응답 스키마) |
-| [architecture-overview.md](./architecture-overview.md) | 아키텍처 상세 |
-| [img/sequence-diagram.md](./img/sequence-diagram.md) | 등록·실행·크레딧 시퀀스 다이어그램 |
-| [mcp-communication-spec.md](./mcp-communication-spec.md) | MCP 서버 통신 규약 (연구소용) |
-| [create-mcp-server.md](./create-mcp-server.md) | MCP 서버 구현 가이드 |
