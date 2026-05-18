@@ -49,19 +49,8 @@ tools/call { name: "hwpx_to_pdf", args: {...} }
 ### 3. 인증 (OAuth 임시토큰 교환)
 
 사용자가 OAuth 서버에서 발급받은 **임시 토큰**을 관리 서버에 전달하면,  
-관리 서버가 이를 OAuth 서버에서 **Access Token으로 교환**한 뒤 MCP 서버 요청에 실어 보낸다.
-
-```
-사용자          OAuth 서버          MCP 관리 서버       MCP 서버
-  │── 인증 요청 ──▶│                     │                 │
-  │◀─ 임시토큰 ───│                     │                 │
-  │── 임시토큰 ──────────────────────▶│                 │
-  │               │◀─ 토큰 교환 요청 ──│                 │
-  │               │─── accessToken ──▶│                 │
-  │               │                   │── Bearer AT ──▶│
-  │               │                   │◀─── 응답 ────── │
-  │◀──────────────────────── 최종 응답 ──────────────────│
-```
+관리 서버가 이를 OAuth 서버에서 **Access Token으로 교환**한 뒤 MCP 서버 요청에 실어 보낸다.  
+시퀀스 다이어그램: [docs/img/sequence-diagram.md — Flow 3](./img/sequence-diagram.md)
 
 ### 4. 크레딧 차감
 
@@ -88,78 +77,6 @@ Backoffice에서 설정한 **앱 메타데이터를 상위에 래핑**해서 반
 | `isVisible` | 공개 노출 여부 |
 | `creditUsed` | 이번 요청 소모 크레딧 |
 | `trace[]` | 실행된 툴·서버·결과 전체 추적 |
-
----
-
-## 전체 아키텍처
-
-```mermaid
-flowchart TD
-    USER["👤 사용자 / WEB"]
-    OAUTH["🔐 OAuth 서버"]
-    MCP["🧭 MCP 관리 서버"]
-    CREDIT["💳 크레딧 서버"]
-    BO["⚙️ Backoffice"]
-
-    HWP["📄 hwp-converter MCP"]
-    PDF["📑 pdf-tools MCP"]
-    AI["🎨 ai-image MCP"]
-
-    USER -- "① 임시토큰 발급" --> OAUTH
-    USER -- "② 임시토큰으로 요청" --> MCP
-    MCP -- "③ 토큰 교환" --> OAUTH
-    MCP -- "④ tools/call + Bearer AT" --> HWP
-    MCP -- "④ tools/call + Bearer AT" --> PDF
-    MCP -- "④ tools/call + Bearer AT" --> AI
-    HWP -. "⑤ 크레딧 차감 (정책 미정)" .-> CREDIT
-    PDF -. "⑤ 크레딧 차감 (정책 미정)" .-> CREDIT
-    AI -. "⑤ 크레딧 차감 (정책 미정)" .-> CREDIT
-    MCP -- "⑥ 결과 래핑 반환" --> USER
-    BO -- "앱 메타 설정" --> MCP
-```
-
----
-
-## OAuth 인증 시퀀스 (신규)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant USER as 사용자 (Client)
-    participant OAUTH as OAuth 서버
-    participant MCP as MCP 관리 서버
-    participant SRV as MCP 서버
-
-    rect rgb(255, 243, 191)
-        note over USER,OAUTH: 🔑 임시 토큰 발급
-        USER->>OAUTH: 인증 요청 (clientId, scope)
-        OAUTH-->>USER: 임시 토큰 발급 (tempToken, expires_in)
-    end
-
-    rect rgb(235, 251, 238)
-        note over USER,MCP: 📨 관리 서버 요청
-        USER->>MCP: POST /agent/chat { question, tempToken }
-    end
-
-    rect rgb(227, 250, 252)
-        note over MCP,OAUTH: 🔄 Access Token 교환
-        MCP->>OAUTH: POST /token/exchange { tempToken }
-        note over OAUTH: 임시 토큰 검증
-        OAUTH-->>MCP: { accessToken, expiresIn }
-    end
-
-    rect rgb(255, 227, 227)
-        note over MCP,SRV: ⚙️ MCP 서버 Tool 실행
-        MCP->>SRV: POST /mcp (JSON-RPC 2.0)<br/>Authorization: Bearer {accessToken}
-        note over SRV: accessToken 검증 후 Tool 실행
-        SRV-->>MCP: { content: [...] }
-    end
-
-    rect rgb(235, 251, 238)
-        note over MCP,USER: 📬 최종 응답 반환
-        MCP-->>USER: { answer, creditUsed, trace }
-    end
-```
 
 ---
 
