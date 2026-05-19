@@ -8,43 +8,49 @@
 sequenceDiagram
     autonumber
     participant CICD as MCP 서버 CI/CD
-    participant HWP  as hwp-converter (MCP 서버 예시)
+    participant SRV  as MCP/WEBAPP 서버
     participant MCP  as MCP 관리 서버
     participant BO   as Backoffice 관리자
     participant WEB  as WEB 사용자
 
     rect rgb(235, 251, 238)
-        note over CICD,MCP: 📦 서버 등록 요청 (HTTP)
-        CICD->>MCP: POST /api/mcp/servers/register<br/>(name, url, description, version)
+        note over CICD,MCP: 📦 서버 등록 요청
+        CICD->>MCP: POST /api/mcp/servers/register<br/>(name, url, version, type: "MCP" | "WEBAPP")
     end
 
     rect rgb(255, 243, 191)
-        note over MCP,HWP: 🔌 MCP 표준 통신 (JSON-RPC 2.0) — 자동 수집
-        MCP->>HWP: tools/list
-        HWP-->>MCP: [{ name, description, inputSchema }]
-        MCP->>HWP: resources/list
-        HWP-->>MCP: [{ uri, name, mimeType }]
-        note over MCP: McpApp 자동 생성<br/>(credit=0, isVisible=false)
+        note over MCP,SRV: 🔌 자동 수집 — type에 따라 분기
+        alt type = MCP (JSON-RPC)
+            MCP->>SRV: POST /mcp → tools/list
+            SRV-->>MCP: [{ name, description, inputSchema }]
+            MCP->>SRV: POST /mcp → resources/list
+            SRV-->>MCP: [{ uri, name, mimeType }]
+        else type = WEBAPP (REST)
+            MCP->>SRV: GET /tools
+            SRV-->>MCP: { tools: [{ name, description, inputSchema }] }
+            MCP->>SRV: GET /resources
+            SRV-->>MCP: { resources: [{ uri, name, mimeType }] }
+        end
+        note over MCP: McpApp 자동 생성<br/>(isVisible=false)
     end
 
     rect rgb(235, 251, 238)
-        note over CICD,MCP: 📦 등록 완료 응답 (HTTP)
+        note over CICD,MCP: 📦 등록 완료 응답
         MCP-->>CICD: { serverId, status: "ACTIVE" }
     end
 
     rect rgb(243, 240, 255)
         note over MCP,BO: ⚙️ Backoffice 앱 메타 설정
         BO->>MCP: GET /api/mcp/apps
-        MCP-->>BO: 앱 목록 반환 (credit=0, isVisible=false)
-        BO->>MCP: PATCH /api/mcp/apps/{id}<br/>(credit=5, isVisible=true, displayName="HWP 변환기")
-        note over MCP: McpApp 업데이트 저장
+        MCP-->>BO: 앱 목록 반환 (isVisible=false)
+        BO->>MCP: PATCH /api/mcp/apps/{id}<br/>(isVisible=true, displayName="HWP 변환기")
         MCP-->>BO: { status: "ok" }
     end
 
     rect rgb(241, 243, 245)
         note over MCP,WEB: 🌐 WEB 공개 앱 노출
         WEB->>MCP: GET /api/mcp/apps/public
-        MCP-->>WEB: 공개 앱 목록 (isVisible=true인 앱만, credit=5 포함)
+        MCP-->>WEB: 공개 앱 목록 (isVisible=true인 앱만)
     end
 ```
 
@@ -104,53 +110,62 @@ sequenceDiagram
 
 ---
 
-## Flow 3: OAuth 임시 토큰 교환 → MCP 서버 실행
+## Flow 3: PO Web 실행 → credit 주입 → MCP 서버 차감
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant USER as 사용자 (Client)
+    participant USER as 사용자 (PO Web)
     participant OAUTH as OAuth 서버
     participant MCP as MCP 관리 서버
-    participant SRV as MCP 서버
+    participant OSS as OSS (tbAIServiceInfo)
+    participant SRV as MCP/WEBAPP 서버
     participant CREDIT as 크레딧 서버
 
     rect rgb(255, 243, 191)
-        note over USER,OAUTH: 🔑 임시 토큰 발급
-        USER->>OAUTH: 인증 요청 (clientId, scope)
-        OAUTH-->>USER: 임시 토큰 발급 (tempToken, expires_in)
+        note over USER,OAUTH: 🔑 인증
+        USER->>OAUTH: 인증 요청
+        OAUTH-->>USER: Bearer token 발급
     end
 
     rect rgb(235, 251, 238)
-        note over USER,MCP: 📨 관리 서버 요청
-        USER->>MCP: POST /agent/chat<br/>{ question, tempToken }
+        note over USER,MCP: 📨 도구 실행 요청
+        USER->>MCP: GET /api/oss/service-types
+        MCP-->>USER: [{ type, deductCredit, serviceDesc }]
+        note over USER: serviceType 선택
+        USER->>MCP: POST /api/web/execute<br/>{ appId, toolName, arguments, serviceType }<br/>Authorization: Bearer {token}
     end
 
     rect rgb(227, 250, 252)
-        note over MCP,OAUTH: 🔄 Access Token 교환
-        MCP->>OAUTH: POST /token/exchange { tempToken }
-        note over OAUTH: 임시 토큰 검증
-        OAUTH-->>MCP: { accessToken, expiresIn }
+        note over MCP,OSS: 💳 credit 정보 조회
+        MCP->>OSS: findActiveByType(serviceType)
+        OSS-->>MCP: { serviceType, deductCredit }
+        note over MCP: arguments에 credit 주입<br/>arguments.credit = { serviceType, deductCredit }
     end
 
-    rect rgb(255, 227, 227)
-        note over MCP,SRV: ⚙️ MCP 서버 Tool 실행
-        MCP->>SRV: POST /mcp (JSON-RPC 2.0)<br/>Authorization: Bearer {accessToken}
-        note over SRV: Tool 실행
-        SRV-->>MCP: { content: [...] }
+    rect rgb(255, 243, 191)
+        note over MCP,SRV: ⚙️ Tool 실행 — type에 따라 분기
+        alt type = MCP
+            MCP->>SRV: POST /mcp (JSON-RPC 2.0)<br/>Authorization: Bearer {token}<br/>params.arguments.credit = { serviceType, deductCredit }
+        else type = WEBAPP
+            MCP->>SRV: POST /tools/call<br/>Authorization: Bearer {token}<br/>arguments.credit = { serviceType, deductCredit }
+        end
+        note over SRV: 비즈니스 로직 실행
     end
 
     rect rgb(243, 240, 255)
-        note over SRV,CREDIT: 💳 크레딧 차감 (정책 미정 — MCP 서버 직접 호출 유력)
-        SRV->>CREDIT: POST /credits/deduct { userId, toolId }
+        note over SRV,CREDIT: 💳 크레딧 차감 (성공 시만)
+        SRV->>CREDIT: POST /credits/deduct<br/>Authorization: Bearer {token}<br/>{ serviceType, deductCredit }
         CREDIT-->>SRV: { ok }
+        SRV-->>MCP: { content: [...] }
     end
 
     rect rgb(235, 251, 238)
         note over MCP,USER: 📬 최종 응답 반환
-        MCP-->>USER: { answer, creditUsed, trace }
+        MCP-->>USER: { appId, toolName, result }
     end
 ```
 
-> **크레딧 차감 정책**: 현재 미정. MCP 서버가 크레딧 서버를 직접 호출하는 방식이 유력.
+> **사용자 식별**: Bearer 토큰을 MCP 서버까지 그대로 전달. MCP 서버가 토큰으로 크레딧 서버에 사용자 특정.  
+> **credit 주입**: MCP 관리 서버가 자동 처리. MCP/WEBAPP 서버 둘 다 `arguments.credit`으로 동일하게 수신.
 
