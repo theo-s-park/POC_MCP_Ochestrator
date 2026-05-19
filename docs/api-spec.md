@@ -39,7 +39,7 @@ MCP 서버(hwp-converter 등)는 [MCP 공식 스펙 `2024-11-05`](https://modelc
 | `credit` | Backoffice | WEB | Tool 실행 1회당 차감할 크레딧 수 (참고용) |
 | `isVisible` | Backoffice | WEB | 공개 앱 목록 노출 여부 |
 
-> MCP 관리 서버는 크레딧 차감에 개입하지 않는다. tools/call 시 `arguments.credit`을 자동 주입하며, MCP/WEBAPP 서버가 실행 성공 후 직접 OSS 크레딧 서버를 호출해 차감한다.
+> MCP 관리 서버는 크레딧 차감에 개입하지 않는다. tools/call 시 `arguments.credit`을 자동 주입하며, MCP/WEBAPP 서버가 실행 성공 후 직접 크레딧 서버를 호출해 차감한다.
 
 **실행 결과 Wrapper** - Tool 실행 시 MCP 관리 서버가 생성 (현재 임시 구현)
 
