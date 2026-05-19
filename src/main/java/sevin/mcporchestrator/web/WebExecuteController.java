@@ -13,6 +13,7 @@ import sevin.mcporchestrator.app.McpAppRepository;
 import sevin.mcporchestrator.auth.OAuthClient;
 import sevin.mcporchestrator.common.exception.McpAppNotFoundException;
 import sevin.mcporchestrator.common.exception.McpServerNotFoundException;
+import sevin.mcporchestrator.oss.OssAiServiceStub;
 import sevin.mcporchestrator.registry.McpServerRegistry;
 import sevin.mcporchestrator.registry.domain.McpServerRecord;
 import tools.jackson.databind.JsonNode;
@@ -31,16 +32,19 @@ public class WebExecuteController {
     private final McpAppRepository appRepository;
     private final McpServerRegistry registry;
     private final OAuthClient oAuthClient;
+    private final OssAiServiceStub ossAiServiceStub;
     private final ObjectMapper objectMapper;
     private final RestClient restClient;
 
     public WebExecuteController(McpAppRepository appRepository,
                                 McpServerRegistry registry,
                                 OAuthClient oAuthClient,
+                                OssAiServiceStub ossAiServiceStub,
                                 ObjectMapper objectMapper) {
         this.appRepository = appRepository;
         this.registry = registry;
         this.oAuthClient = oAuthClient;
+        this.ossAiServiceStub = ossAiServiceStub;
         this.objectMapper = objectMapper;
         this.restClient = RestClient.builder()
                 .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory())
@@ -66,10 +70,21 @@ public class WebExecuteController {
         String accessToken = oAuthClient.exchangeAccessToken(req.authorToken());
         log.info("[WebExecute] appId={} tool={} server={}", req.appId(), req.toolName(), server.getName());
 
-        // 3. MCP 서버 tools/call (Bearer 토큰 포함) — ServerType에 따라 통신 방식 분기
+        // 3. serviceType이 있으면 OSS credit 정보 조회 후 _credit으로 arguments에 merge
+        Map<String, Object> arguments = new HashMap<>(req.arguments() != null ? req.arguments() : Map.of());
+        if (req.serviceType() != null) {
+            ossAiServiceStub.findActiveByType(req.serviceType()).ifPresent(info -> {
+                arguments.put("credit", Map.of(
+                        "serviceType", info.type(),
+                        "deductCredit", info.deductCredit()
+                ));
+            });
+            log.info("[WebExecute] serviceType={} credit merged into arguments", req.serviceType());
+        }
+
+        // 4. MCP 서버 tools/call (Bearer 토큰 포함) — ServerType에 따라 통신 방식 분기
         String responseBody;
         JsonNode result;
-        Map<String, Object> arguments = req.arguments() != null ? req.arguments() : Map.of();
 
         if (server.getType() == sevin.mcporchestrator.registry.domain.ServerType.WEBAPP) {
             Map<String, Object> webReq = new HashMap<>();
