@@ -347,3 +347,63 @@ MCP 서버의 리소스 내용을 프록시로 반환. WEB도 동일 엔드포�
 | `trace[].credit` | Wrapper | 해당 Tool 호출 크레딧 |
 | `trace[].args` | Wrapper | Tool 파라미터 (JSON string) |
 | `trace[].result` | **MCP 표준** | MCP 서버 원본 응답 (변경 불가) |
+
+---
+
+## DB 스키마
+
+> H2 File DB (`./data/mcporchestrator.mv.db`). Hibernate `ddl-auto: update` 로 자동 생성.
+
+### mcp_server
+
+```sql
+CREATE TABLE mcp_server (
+    server_id            VARCHAR(36)   PRIMARY KEY,
+    name                 VARCHAR(255)  NOT NULL,
+    url                  VARCHAR(255)  NOT NULL,
+    description          VARCHAR(255),
+    version              VARCHAR(255),
+    type                 VARCHAR(20)   NOT NULL DEFAULT 'MCP',   -- MCP | WEBAPP
+    status               VARCHAR(30)   NOT NULL,                  -- PENDING | ACTIVE | INACTIVE | REGISTRATION_FAILED
+    tools_json           TEXT,
+    resources_json       TEXT,
+    registered_at        TIMESTAMP,
+    health_check_failures INT          NOT NULL DEFAULT 0
+);
+```
+
+| 컬럼 | 설명 |
+|---|---|
+| `server_id` | UUID. 동일 URL 재등록 시 재사용 |
+| `type` | `MCP` — tools/list 수집 후 등록. `WEBAPP` — 수집 생략 |
+| `status` | 헬스체크 3회 연속 실패 → `INACTIVE`. 복구 시 자동 `ACTIVE` |
+| `tools_json` | `tools/list` 응답 JSON 직렬화 배열 |
+| `resources_json` | `resources/list` 응답 JSON 직렬화 배열 |
+| `health_check_failures` | 연속 실패 횟수. 성공 시 0 리셋 |
+
+---
+
+### mcp_app
+
+MCP 서버 등록 시 자동 생성 (1:1). Backoffice에서 메타데이터를 설정하면 WEB 공개 앱으로 노출된다.
+
+```sql
+CREATE TABLE mcp_app (
+    id             VARCHAR(36)   PRIMARY KEY,
+    mcp_server_id  VARCHAR(36)   NOT NULL UNIQUE,
+    display_name   VARCHAR(255),
+    thumbnail      TEXT,
+    credit         INT           NOT NULL DEFAULT 0,
+    description    TEXT,
+    is_visible     BOOLEAN       NOT NULL DEFAULT FALSE,
+    created_at     TIMESTAMP
+);
+```
+
+| 컬럼 | 설명 |
+|---|---|
+| `mcp_server_id` | `mcp_server.server_id` 참조. UNIQUE (1:1) |
+| `display_name` | Backoffice 설정. WEB 노출명 |
+| `thumbnail` | 이미지 URL. `resources/list` image/* 에서 자동 추출 또는 수동 설정 |
+| `credit` | Tool 실행 1회당 크레딧 (참고용, 실제 차감 미구현) |
+| `is_visible` | `true` 인 앱만 `GET /api/mcp/apps/public` 에 노출 |
