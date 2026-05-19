@@ -66,26 +66,42 @@ public class WebExecuteController {
         String accessToken = oAuthClient.exchangeAccessToken(req.authorToken());
         log.info("[WebExecute] appId={} tool={} server={}", req.appId(), req.toolName(), server.getName());
 
-        // 3. MCP 서버 tools/call (Bearer 토큰 포함)
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", req.toolName());
-        params.put("arguments", req.arguments() != null ? req.arguments() : Map.of());
+        // 3. MCP 서버 tools/call (Bearer 토큰 포함) — ServerType에 따라 통신 방식 분기
+        String responseBody;
+        JsonNode result;
+        Map<String, Object> arguments = req.arguments() != null ? req.arguments() : Map.of();
 
-        Map<String, Object> mcpReq = new HashMap<>();
-        mcpReq.put("jsonrpc", "2.0");
-        mcpReq.put("id", 1);
-        mcpReq.put("method", "tools/call");
-        mcpReq.put("params", params);
+        if (server.getType() == sevin.mcporchestrator.registry.domain.ServerType.WEBAPP) {
+            Map<String, Object> webReq = new HashMap<>();
+            webReq.put("name", req.toolName());
+            webReq.put("arguments", arguments);
+            responseBody = restClient.post()
+                    .uri(server.getUrl() + "/tools/call")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .body(objectMapper.writeValueAsString(webReq))
+                    .retrieve()
+                    .body(String.class);
+            result = objectMapper.readTree(responseBody);
+        } else {
+            Map<String, Object> params = new HashMap<>();
+            params.put("name", req.toolName());
+            params.put("arguments", arguments);
+            Map<String, Object> mcpReq = new HashMap<>();
+            mcpReq.put("jsonrpc", "2.0");
+            mcpReq.put("id", 1);
+            mcpReq.put("method", "tools/call");
+            mcpReq.put("params", params);
+            responseBody = restClient.post()
+                    .uri(server.getUrl() + "/mcp")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .body(objectMapper.writeValueAsString(mcpReq))
+                    .retrieve()
+                    .body(String.class);
+            result = objectMapper.readTree(responseBody).path("result");
+        }
 
-        String responseBody = restClient.post()
-                .uri(server.getUrl() + "/mcp")
-                .contentType(MediaType.APPLICATION_JSON)
-                .headers(h -> h.setBearerAuth(accessToken))
-                .body(objectMapper.writeValueAsString(mcpReq))
-                .retrieve()
-                .body(String.class);
-
-        JsonNode result = objectMapper.readTree(responseBody).path("result");
         return new WebExecuteResponse(req.appId(), req.toolName(), result, app.getCredit());
     }
 

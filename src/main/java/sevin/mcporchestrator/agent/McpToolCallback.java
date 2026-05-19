@@ -9,6 +9,7 @@ import org.springframework.web.client.RestClient;
 import sevin.mcporchestrator.registry.McpServerRegistry;
 import sevin.mcporchestrator.registry.domain.McpServerRecord;
 import sevin.mcporchestrator.registry.domain.McpTool;
+import sevin.mcporchestrator.registry.domain.ServerType;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -55,21 +56,31 @@ public class McpToolCallback implements ToolCallback {
             log.info("[Agent][{}] tool call -> {} | server={} | args={}",
                     sessionId, tool.getName(), server.getName(), args);
 
-            Map<String, Object> request = Map.of(
-                    "jsonrpc", "2.0",
-                    "id", 1,
-                    "method", "tools/call",
-                    "params", Map.of("name", tool.getName(), "arguments", args)
-            );
-
-            String response = restClient.post()
-                    .uri(server.getUrl() + "/mcp")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(objectMapper.writeValueAsString(request))
-                    .retrieve()
-                    .body(String.class);
-
-            String result = objectMapper.readTree(response).path("result").toString();
+            String result;
+            if (server.getType() == ServerType.WEBAPP) {
+                Map<String, Object> request = Map.of("name", tool.getName(), "arguments", args);
+                String response = restClient.post()
+                        .uri(server.getUrl() + "/tools/call")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(objectMapper.writeValueAsString(request))
+                        .retrieve()
+                        .body(String.class);
+                result = response;
+            } else {
+                Map<String, Object> request = Map.of(
+                        "jsonrpc", "2.0",
+                        "id", 1,
+                        "method", "tools/call",
+                        "params", Map.of("name", tool.getName(), "arguments", args)
+                );
+                String response = restClient.post()
+                        .uri(server.getUrl() + "/mcp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(objectMapper.writeValueAsString(request))
+                        .retrieve()
+                        .body(String.class);
+                result = objectMapper.readTree(response).path("result").toString();
+            }
             String truncated = result.length() > 6000
                     ? result.substring(0, 6000) + "... [truncated]"
                     : result;

@@ -12,18 +12,17 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Component
-public class ResourcesListCollector implements McpCapabilityCollector {
+public class WebappResourcesCollector implements McpCapabilityCollector {
 
-    private static final Logger log = LoggerFactory.getLogger(ResourcesListCollector.class);
+    private static final Logger log = LoggerFactory.getLogger(WebappResourcesCollector.class);
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final McpServerRegistry registry;
 
-    public ResourcesListCollector(McpServerRegistry registry, ObjectMapper objectMapper) {
+    public WebappResourcesCollector(McpServerRegistry registry, ObjectMapper objectMapper) {
         this.restClient = RestClient.builder()
             .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory())
             .build();
@@ -33,7 +32,7 @@ public class ResourcesListCollector implements McpCapabilityCollector {
 
     @Override
     public String method() {
-        return "resources/list";
+        return "GET /resources";
     }
 
     @Override
@@ -43,28 +42,19 @@ public class ResourcesListCollector implements McpCapabilityCollector {
 
     @Override
     public boolean supports(ServerType type) {
-        return type == ServerType.MCP;
+        return type == ServerType.WEBAPP;
     }
 
     @Override
     public CollectResult collect(String serverId, String serverUrl) {
         try {
-            Map<String, Object> request = Map.of(
-                "jsonrpc", "2.0",
-                "id", 1,
-                "method", method(),
-                "params", Map.of()
-            );
-
-            String responseBody = restClient.post()
-                .uri(serverUrl + "/mcp")
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-                .body(objectMapper.writeValueAsString(request))
+            String responseBody = restClient.get()
+                .uri(serverUrl + "/resources")
                 .retrieve()
                 .body(String.class);
 
             JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode resourcesNode = root.path("result").path("resources");
+            JsonNode resourcesNode = root.path("resources");
 
             List<McpResource> resources = new ArrayList<>();
             for (JsonNode node : resourcesNode) {
@@ -77,16 +67,16 @@ public class ResourcesListCollector implements McpCapabilityCollector {
             }
 
             if (resources.isEmpty()) {
-                log.info("[ResourcesCollector] empty resources (optional) - server {}", serverId);
+                log.info("[WebappResourcesCollector] empty resources (optional) - server {}", serverId);
                 return CollectResult.EMPTY;
             }
 
             registry.updateResources(serverId, resources);
-            log.info("[ResourcesCollector] {} resource(s) collected - server {}", resources.size(), serverId);
+            log.info("[WebappResourcesCollector] {} resource(s) collected - server {}", resources.size(), serverId);
             return CollectResult.SUCCESS;
 
         } catch (Exception e) {
-            log.warn("[ResourcesCollector] failed (optional) - server {}: {}", serverId, e.getMessage());
+            log.warn("[WebappResourcesCollector] failed (optional) - server {}: {}", serverId, e.getMessage());
             return CollectResult.FAILED;
         }
     }

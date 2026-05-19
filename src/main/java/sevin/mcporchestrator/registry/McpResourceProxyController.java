@@ -14,6 +14,7 @@ import sevin.mcporchestrator.common.exception.ErrorCode;
 import sevin.mcporchestrator.common.exception.McpResourceException;
 import sevin.mcporchestrator.common.exception.McpServerNotFoundException;
 import sevin.mcporchestrator.registry.domain.McpServerRecord;
+import sevin.mcporchestrator.registry.domain.ServerType;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -48,22 +49,30 @@ public class McpResourceProxyController {
             .orElseThrow(McpServerNotFoundException::new);
 
         try {
-            Map<String, Object> request = Map.of(
-                "jsonrpc", "2.0",
-                "id", 1,
-                "method", "resources/read",
-                "params", Map.of("uri", uri)
-            );
+            String responseBody;
+            JsonNode contents;
 
-            String responseBody = restClient.post()
-                .uri(server.getUrl() + "/mcp")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(objectMapper.writeValueAsString(request))
-                .retrieve()
-                .body(String.class);
-
-            JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode contents = root.path("result").path("contents");
+            if (server.getType() == ServerType.WEBAPP) {
+                responseBody = restClient.get()
+                    .uri(server.getUrl() + "/resources/read?uri=" + java.net.URLEncoder.encode(uri, java.nio.charset.StandardCharsets.UTF_8))
+                    .retrieve()
+                    .body(String.class);
+                contents = objectMapper.readTree(responseBody).path("contents");
+            } else {
+                Map<String, Object> request = Map.of(
+                    "jsonrpc", "2.0",
+                    "id", 1,
+                    "method", "resources/read",
+                    "params", Map.of("uri", uri)
+                );
+                responseBody = restClient.post()
+                    .uri(server.getUrl() + "/mcp")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(objectMapper.writeValueAsString(request))
+                    .retrieve()
+                    .body(String.class);
+                contents = objectMapper.readTree(responseBody).path("result").path("contents");
+            }
 
             if (!contents.isArray() || contents.isEmpty()) {
                 throw new McpResourceException(ErrorCode.RESOURCE_NOT_FOUND);

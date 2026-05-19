@@ -12,18 +12,17 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Component
-public class ToolsListCollector implements McpCapabilityCollector {
+public class WebappToolsCollector implements McpCapabilityCollector {
 
-    private static final Logger log = LoggerFactory.getLogger(ToolsListCollector.class);
+    private static final Logger log = LoggerFactory.getLogger(WebappToolsCollector.class);
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final McpServerRegistry registry;
 
-    public ToolsListCollector(McpServerRegistry registry, ObjectMapper objectMapper) {
+    public WebappToolsCollector(McpServerRegistry registry, ObjectMapper objectMapper) {
         this.restClient = RestClient.builder()
             .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory())
             .build();
@@ -33,7 +32,7 @@ public class ToolsListCollector implements McpCapabilityCollector {
 
     @Override
     public String method() {
-        return "tools/list";
+        return "GET /tools";
     }
 
     @Override
@@ -43,28 +42,19 @@ public class ToolsListCollector implements McpCapabilityCollector {
 
     @Override
     public boolean supports(ServerType type) {
-        return type == ServerType.MCP;
+        return type == ServerType.WEBAPP;
     }
 
     @Override
     public CollectResult collect(String serverId, String serverUrl) {
         try {
-            Map<String, Object> request = Map.of(
-                "jsonrpc", "2.0",
-                "id", 1,
-                "method", method(),
-                "params", Map.of()
-            );
-
-            String responseBody = restClient.post()
-                .uri(serverUrl + "/mcp")
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-                .body(objectMapper.writeValueAsString(request))
+            String responseBody = restClient.get()
+                .uri(serverUrl + "/tools")
                 .retrieve()
                 .body(String.class);
 
             JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode toolsNode = root.path("result").path("tools");
+            JsonNode toolsNode = root.path("tools");
 
             List<McpTool> tools = new ArrayList<>();
             for (JsonNode toolNode : toolsNode) {
@@ -76,16 +66,16 @@ public class ToolsListCollector implements McpCapabilityCollector {
             }
 
             if (tools.isEmpty()) {
-                log.warn("[ToolsCollector] empty tools - server {}", serverId);
+                log.warn("[WebappToolsCollector] empty tools - server {}", serverId);
                 return CollectResult.EMPTY;
             }
 
             registry.updateTools(serverId, tools);
-            log.info("[ToolsCollector] {} tool(s) collected - server {}", tools.size(), serverId);
+            log.info("[WebappToolsCollector] {} tool(s) collected - server {}", tools.size(), serverId);
             return CollectResult.SUCCESS;
 
         } catch (Exception e) {
-            log.warn("[ToolsCollector] failed - server {}: {}", serverId, e.getMessage());
+            log.warn("[WebappToolsCollector] failed - server {}: {}", serverId, e.getMessage());
             return CollectResult.FAILED;
         }
     }

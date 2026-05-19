@@ -56,15 +56,14 @@ public class McpServerService {
         registry.register(record);
         log.info("[Registry] {}: {} ({}) type={}", existing.isPresent() ? "re-registered" : "registered", name, serverId, type);
 
-        if (type == ServerType.MCP) {
-            for (McpCapabilityCollector collector : collectors) {
-                CollectResult result = collector.collect(serverId, url);
-                if (collector.isRequired() && result != CollectResult.SUCCESS) {
-                    log.warn("[Registry] required collector {} returned {} - marking REGISTRATION_FAILED: {}",
-                        collector.method(), result, serverId);
-                    registry.updateStatus(serverId, ServerStatus.REGISTRATION_FAILED);
-                    return registry.find(serverId).orElse(record);
-                }
+        for (McpCapabilityCollector collector : collectors) {
+            if (!collector.supports(type)) continue;
+            CollectResult result = collector.collect(serverId, url);
+            if (collector.isRequired() && result != CollectResult.SUCCESS) {
+                log.warn("[Registry] required collector {} returned {} - marking REGISTRATION_FAILED: {}",
+                    collector.method(), result, serverId);
+                registry.updateStatus(serverId, ServerStatus.REGISTRATION_FAILED);
+                return registry.find(serverId).orElse(record);
             }
         }
 
