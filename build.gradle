@@ -8,12 +8,6 @@ group = 'sevin'
 version = '0.0.1-SNAPSHOT'
 description = 'mcporchestrator'
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
 repositories {
     mavenCentral()
     maven { url 'https://repo.spring.io/milestone' }
