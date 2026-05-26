@@ -75,7 +75,7 @@
     "name": "get_current_weather",
     "arguments": {
       "city": "서울",
-      "credit": { "serviceType": 2, "deductCredit": 50 }
+      "credit": { "serviceType": "GPT3", "deductCredit": 50 }
     }
   }
 }
@@ -174,7 +174,7 @@ JSON-RPC 래퍼 없이 엔드포인트 자체가 메서드 역할을 한다.
   "name": "convert_hwp",
   "arguments": {
     "fileUrl": "https://example.com/doc.hwp",
-    "credit": { "serviceType": 2, "deductCredit": 50 }
+    "credit": { "serviceType": "GPT3", "deductCredit": 50 }
   }
 }
 
@@ -219,7 +219,7 @@ MCP 관리 서버가 자동 주입하며, 서버 개발자가 별도로 요청�
 "arguments": {
   // ... 비즈니스 파라미터 ...
   "credit": {
-    "serviceType": 2,
+    "serviceType": "GPT3",
     "deductCredit": 50
   }
 }

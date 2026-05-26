@@ -53,7 +53,8 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radia
 .card-name{font-family:var(--font-head);font-size:17px;font-weight:700;letter-spacing:-.3px}
 .card-desc{color:var(--muted);font-size:12px;line-height:1.6;flex:1}
 .card-tools{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
-.tool-pill{font-family:var(--font-mono);font-size:10px;padding:2px 8px;border-radius:4px;background:var(--surface2);color:var(--blue);border:1px solid var(--border)}
+.tool-pill{font-family:var(--font-mono);font-size:10px;padding:2px 8px;border-radius:4px;background:var(--surface2);color:var(--blue);border:1px solid var(--border);display:inline-flex;align-items:center;gap:4px}
+.tool-pill-cr{color:var(--amber);font-size:9px;font-weight:600}
 .card-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2)}
 .card-meta{font-size:11px;color:var(--muted)}
 .btn-use{display:inline-flex;align-items:center;gap:6px;padding:7px 18px;background:var(--accent);color:#ffffff;border:none;border-radius:7px;font-size:13px;font-weight:700;font-family:var(--font-head);cursor:pointer;transition:all .15s;letter-spacing:.03em}
@@ -98,7 +99,10 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radia
 
 /* Tool list in drawer */
 .tool-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px}
-.tool-card-name{font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-bottom:4px}
+.tool-card-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.tool-card-name{font-family:var(--font-mono);font-size:12px;color:var(--accent);flex:1}
+.tool-card-credit{font-family:var(--font-mono);font-size:11px;color:var(--amber);font-weight:600;background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.2);border-radius:4px;padding:1px 7px;white-space:nowrap}
+.tool-card-stype{font-size:10px;color:var(--muted);background:var(--surface3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;white-space:nowrap}
 .tool-card-desc{font-size:12px;color:var(--muted);line-height:1.5}
 
 /* Chat area in drawer */
@@ -206,15 +210,23 @@ function renderCard(app) {
   const thumb = app.thumbnail
     ? `<img src="${escHtml(app.thumbnail)}" alt="" onerror="this.style.display='none'">`
     : `<div class="card-thumb-placeholder">⚡</div>`;
-  const tools = (app.tools || []).slice(0, 3).map(t =>
-    `<span class="tool-pill">${escHtml(t.name)}</span>`
-  ).join('') + (app.tools?.length > 3 ? `<span class="tool-pill">+${app.tools.length - 3}</span>` : '');
+
+  const allTools = app.tools || [];
+  const credits = allTools.map(t => t.deductCredit || 0).filter(c => c > 0);
+  const maxCr = credits.length ? Math.max(...credits) : 0;
+  const minCr = credits.length ? Math.min(...credits) : 0;
+  const crLabel = maxCr === 0 ? '' : minCr === maxCr ? `C ${maxCr}` : `C ${minCr}~${maxCr}`;
+
+  const tools = allTools.slice(0, 3).map(t => {
+    const cr = t.deductCredit > 0 ? `<span class="tool-pill-cr">C ${t.deductCredit}</span>` : '';
+    return `<span class="tool-pill">${escHtml(t.name)}${cr}</span>`;
+  }).join('') + (allTools.length > 3 ? `<span class="tool-pill">+${allTools.length - 3}</span>` : '');
 
   return `
   <div class="app-card">
     <div class="card-thumb">
       ${thumb}
-      ${app.credit ? `<div class="card-credit">${app.credit} cr</div>` : ''}
+      ${crLabel ? `<div class="card-credit">${crLabel}</div>` : ''}
     </div>
     <div class="card-body">
       <div class="card-name">${escHtml(app.displayName || app.id)}</div>
@@ -241,11 +253,20 @@ function openDrawer(app) {
   document.getElementById('drawerName').textContent = app.displayName || app.id;
   document.getElementById('drawerDesc').textContent = app.description || '';
 
-  const toolsHtml = (app.tools || []).map(t => `
+  const toolsHtml = (app.tools || []).map(t => {
+    const crBadge = t.deductCredit > 0
+      ? `<span class="tool-card-credit">C ${t.deductCredit}</span>` : '';
+    const stBadge = t.serviceType
+      ? `<span class="tool-card-stype">${escHtml(t.serviceType)}</span>` : '';
+    return `
     <div class="tool-card">
-      <div class="tool-card-name">${escHtml(t.name)}</div>
+      <div class="tool-card-header">
+        <div class="tool-card-name">${escHtml(t.name)}</div>
+        ${stBadge}${crBadge}
+      </div>
       <div class="tool-card-desc">${escHtml(t.description || '')}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   const toolOptions = (app.tools || []).map(t =>
     `<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`

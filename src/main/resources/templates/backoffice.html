@@ -59,8 +59,15 @@ body::before {
 .field { display:flex; flex-direction:column; gap:6px; }
 .field.full { grid-column:1/-1; }
 .field label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
-.field input, .field textarea { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 12px; color:var(--text); font-family:var(--font-body); font-size:13px; outline:none; transition:border .15s; }
-.field input:focus, .field textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-d); }
+.field input, .field textarea, .field select { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 12px; color:var(--text); font-family:var(--font-body); font-size:13px; outline:none; transition:border .15s; }
+.field input:focus, .field textarea:focus, .field select:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-d); }
+.field select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:30px; cursor:pointer; }
+.credit-display { font-size:12px; color:var(--muted); margin-top:4px; font-family:var(--font-mono); }
+.tools-section { padding:0 20px 16px; }
+.tools-section-title { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
+.tool-row { display:grid; grid-template-columns:1fr 180px auto; align-items:center; gap:10px; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; margin-bottom:6px; }
+.tool-name { font-family:var(--font-mono); font-size:12px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tool-credit-info { font-size:11px; color:var(--muted); font-family:var(--font-mono); margin-top:2px; }
 .field textarea { resize:vertical; min-height:72px; }
 .toggle-row { display:flex; align-items:center; gap:10px; }
 .toggle { position:relative; width:36px; height:20px; }
@@ -133,15 +140,60 @@ body::before {
 </main>
 
 <script>
+let serviceTypes = [];
+
 async function load() {
-  const res = await fetch('/api/mcp/apps');
-  const apps = await res.json();
+  // service type 목록 병렬 로드
+  const [appsRes, stRes] = await Promise.all([
+    fetch('/api/mcp/apps'),
+    fetch('/api/oss/service-types')
+  ]);
+  const apps = await appsRes.json();
+  serviceTypes = stRes.ok ? await stRes.json() : [];
+
   const el = document.getElementById('content');
   if (!apps.length) {
     el.innerHTML = `<div class="empty-state"><div class="empty-title">No apps registered</div><div style="font-size:12px;margin-top:4px">MCP 서버를 먼저 등록해주세요.</div></div>`;
     return;
   }
   el.innerHTML = apps.map(app => renderApp(app)).join('');
+}
+
+function renderServiceTypeOptions(selected) {
+  return serviceTypes.map(st =>
+    `<option value="${st.serviceType}" data-credit="${st.deductCredit}" ${st.serviceType === selected ? 'selected' : ''}>
+      ${st.serviceType} (${st.deductCredit}cr${st.serviceDesc ? ' · ' + st.serviceDesc : ''})
+    </option>`
+  ).join('');
+}
+
+
+function renderToolRows(appId, tools) {
+  if (!tools || !tools.length) return '';
+  return tools.map(t => `
+    <div class="tool-row">
+      <div>
+        <div class="tool-name">${t.toolName}</div>
+        <div class="tool-credit-info" id="${appId}-${t.toolName}-creditInfo">${t.serviceType ? `${t.serviceType} · ${t.deductCredit}cr` : '— not set —'}</div>
+      </div>
+      <select id="${appId}-${t.toolName}-st" onchange="onToolServiceTypeChange('${appId}','${t.toolName}')">
+        <option value="">— 선택 안 함 —</option>
+        ${renderServiceTypeOptions(t.serviceType)}
+      </select>
+      <label class="toggle" title="노출 여부">
+        <input type="checkbox" id="${appId}-${t.toolName}-vis" ${t.visible !== false ? 'checked' : ''}>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>`).join('');
+}
+
+function onToolServiceTypeChange(appId, toolName) {
+  const sel = document.getElementById(`${appId}-${toolName}-st`);
+  const opt = sel.selectedOptions[0];
+  const credit = opt ? (opt.dataset.credit || 0) : 0;
+  const st = sel.value;
+  const info = document.getElementById(`${appId}-${toolName}-creditInfo`);
+  if (info) info.textContent = st ? `${st} · ${credit}cr` : '— not set —';
 }
 
 function renderApp(app) {
@@ -164,10 +216,6 @@ function renderApp(app) {
         <input type="text" id="${app.id}-displayName" value="${app.displayName || ''}" placeholder="노출용 이름">
       </div>
       <div class="field">
-        <label>Credit</label>
-        <input type="number" id="${app.id}-credit" value="${app.credit}" min="0">
-      </div>
-      <div class="field">
         <label>Thumbnail URL</label>
         <input type="text" id="${app.id}-thumbnail" value="${app.thumbnail || ''}" placeholder="https://...">
       </div>
@@ -178,7 +226,7 @@ function renderApp(app) {
             <input type="checkbox" id="${app.id}-isVisible" ${app.isVisible ? 'checked' : ''}>
             <span class="toggle-slider"></span>
           </label>
-          <span style="font-size:12px;color:var(--muted)">사용자에게 노출</span>
+          <span style="font-size:12px;color:var(--muted)">앱 전체 노출</span>
         </div>
       </div>
       <div class="field full">
@@ -186,20 +234,38 @@ function renderApp(app) {
         <textarea id="${app.id}-description" placeholder="노출용 설명">${app.description || ''}</textarea>
       </div>
     </div>
+    ${app.tools && app.tools.length ? `
+    <div class="tools-section">
+      <div class="tools-section-title">Tools — service type &amp; visibility</div>
+      ${renderToolRows(app.id, app.tools)}
+    </div>` : ''}
     <div class="app-footer">
-      <button class="btn btn-accent" onclick="save('${app.id}')">저장</button>
+      <button class="btn btn-accent" onclick="save('${app.id}', ${JSON.stringify(app.tools || []).replace(/"/g, '&quot;')})">저장</button>
     </div>
   </div>`;
 }
 
-async function save(id) {
+async function save(id, tools) {
   const displayName = document.getElementById(`${id}-displayName`).value || null;
+
+  const toolCredits = {};
+  (tools || []).forEach(t => {
+    const sel = document.getElementById(`${id}-${t.toolName}-st`);
+    const vis = document.getElementById(`${id}-${t.toolName}-vis`);
+    if (!sel) return;
+    const st = sel.value || null;
+    const opt = sel.selectedOptions[0];
+    const credit = opt && opt.dataset.credit ? parseInt(opt.dataset.credit) : 0;
+    const visible = vis ? vis.checked : true;
+    toolCredits[t.toolName] = { serviceType: st, deductCredit: credit, visible };
+  });
+
   const body = {
     displayName,
-    thumbnail:   document.getElementById(`${id}-thumbnail`).value || null,
-    credit:      parseInt(document.getElementById(`${id}-credit`).value) || 0,
-    description: document.getElementById(`${id}-description`).value || null,
-    isVisible:   document.getElementById(`${id}-isVisible`).checked,
+    thumbnail:    document.getElementById(`${id}-thumbnail`).value || null,
+    description:  document.getElementById(`${id}-description`).value || null,
+    isVisible:    document.getElementById(`${id}-isVisible`).checked,
+    toolCredits:  Object.keys(toolCredits).length ? toolCredits : null,
   };
   try {
     const res = await fetch(`/api/mcp/apps/${id}`, {

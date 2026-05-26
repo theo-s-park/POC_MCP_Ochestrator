@@ -36,10 +36,10 @@ MCP 서버(hwp-converter 등)는 [MCP 공식 스펙 `2024-11-05`](https://modelc
 | `displayName` | Backoffice | WEB | 사용자에게 보이는 앱 이름 |
 | `description` | Backoffice | WEB | 앱 설명 (공개용) |
 | `thumbnail` | Backoffice | WEB | 앱 썸네일 이미지 URL |
-| `credit` | Backoffice | WEB | Tool 실행 1회당 차감할 크레딧 수 (참고용) |
 | `isVisible` | Backoffice | WEB | 공개 앱 목록 노출 여부 |
+| `toolCredits` | Backoffice | WEB | 툴별 크레딧 설정 (`Map<toolName, {serviceType, deductCredit, visible}>`) |
 
-> MCP 관리 서버는 크레딧 차감에 개입하지 않는다. tools/call 시 `arguments.credit`을 자동 주입하며, MCP/WEBAPP 서버가 실행 성공 후 직접 크레딧 서버를 호출해 차감한다.
+> 크레딧은 앱 단위가 아닌 **툴 단위**로 설정한다. Backoffice에서 각 툴마다 serviceType과 deductCredit을 독립적으로 지정한다. MCP 관리 서버는 tools/call 시 해당 툴의 `arguments.credit`을 자동 주입하며, MCP/WEBAPP 서버가 실행 성공 후 직접 크레딧 서버를 호출해 차감한다.
 
 **실행 결과 Wrapper** - Tool 실행 시 MCP 관리 서버가 생성 (현재 임시 구현)
 
@@ -237,9 +237,16 @@ MCP 서버의 리소스 내용을 프록시로 반환. WEB도 동일 엔드포�
     "serverStatus": "ACTIVE",
     "displayName": "HWP 변환기",
     "thumbnail": "https://example.com/icon.png",
-    "credit": 5,
     "description": "HWP 파일을 PDF로 변환",
-    "isVisible": true
+    "isVisible": true,
+    "tools": [
+      {
+        "toolName": "convert_hwp_to_pdf",
+        "serviceType": "GPT3",
+        "deductCredit": 5,
+        "visible": true
+      }
+    ]
   }
 ]
 ```
@@ -255,11 +262,24 @@ MCP 서버의 리소스 내용을 프록시로 반환. WEB도 동일 엔드포�
 {
   "displayName": "HWP 변환기",
   "thumbnail": "https://example.com/icon.png",
-  "credit": 5,
   "description": "HWP 파일을 PDF로 변환하는 서비스",
-  "isVisible": true
+  "isVisible": true,
+  "toolCredits": {
+    "convert_hwp_to_pdf": {
+      "serviceType": "GPT3",
+      "deductCredit": 5,
+      "visible": true
+    }
+  }
 }
 ```
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `toolCredits` | object | 툴명 → `{serviceType, deductCredit, visible}` 맵. null 전송 시 무시 |
+| `toolCredits.*.serviceType` | string | OSS 서비스 타입 식별자 (예: `"GPT3"`, `"PO_ASK_DOC"`) |
+| `toolCredits.*.deductCredit` | integer | 툴 실행 1회당 차감 크레딧 |
+| `toolCredits.*.visible` | boolean | `false`면 공개 API 응답에서 해당 툴 제외 |
 
 **Response 200**
 ```json
@@ -284,7 +304,6 @@ MCP 서버의 리소스 내용을 프록시로 반환. WEB도 동일 엔드포�
     "displayName": "HWP 변환기",
     "description": "HWP 파일을 PDF로 변환",
     "thumbnail": "https://example.com/icon.png",
-    "credit": 5,
     "mcpUrl": "https://hwp-converter.internal",
     "tools": [
       {
@@ -296,12 +315,17 @@ MCP 서버의 리소스 내용을 프록시로 반환. WEB도 동일 엔드포�
             "fileUrl": { "type": "string" }
           },
           "required": ["fileUrl"]
-        }
+        },
+        "serviceType": "GPT3",
+        "deductCredit": 5
       }
     ]
   }
 ]
 ```
+
+> - 앱 레벨 `credit` 필드는 없다. 크레딧은 툴 단위로 내려온다.
+> - `visible=false`로 설정된 툴은 이 응답에서 제외된다.
 
 ---
 
@@ -389,14 +413,16 @@ MCP 서버 등록 시 자동 생성 (1:1). Backoffice에서 메타데이터를 �
 
 ```sql
 CREATE TABLE mcp_app (
-    id             VARCHAR(36)   PRIMARY KEY,
-    mcp_server_id  VARCHAR(36)   NOT NULL UNIQUE,
-    display_name   VARCHAR(255),
-    thumbnail      TEXT,
-    credit         INT           NOT NULL DEFAULT 0,
-    description    TEXT,
-    is_visible     BOOLEAN       NOT NULL DEFAULT FALSE,
-    created_at     TIMESTAMP
+    id                 VARCHAR(36)   PRIMARY KEY,
+    mcp_server_id      VARCHAR(36)   NOT NULL UNIQUE,
+    display_name       VARCHAR(255),
+    thumbnail          TEXT,
+    service_type       VARCHAR(255),
+    credit             INT           NOT NULL DEFAULT 0,
+    tool_credits_json  TEXT,
+    description        TEXT,
+    is_visible         BOOLEAN       NOT NULL DEFAULT FALSE,
+    created_at         TIMESTAMP
 );
 ```
 
@@ -405,5 +431,7 @@ CREATE TABLE mcp_app (
 | `mcp_server_id` | `mcp_server.server_id` 참조. UNIQUE (1:1) |
 | `display_name` | Backoffice 설정. WEB 노출명 |
 | `thumbnail` | 이미지 URL. `resources/list` image/* 에서 자동 추출 또는 수동 설정 |
-| `credit` | Tool 실행 1회당 크레딧 (참고용, 실제 차감 미구현) |
+| `service_type` | 앱 레벨 서비스 타입 (현재 미사용, 향후 확장용) |
+| `credit` | 앱 레벨 크레딧 (현재 미사용, `tool_credits_json`으로 대체) |
+| `tool_credits_json` | 툴별 크레딧 설정 JSON. `Map<toolName, {serviceType, deductCredit, visible}>` 형태 |
 | `is_visible` | `true` 인 앱만 `GET /api/mcp/apps/public` 에 노출 |

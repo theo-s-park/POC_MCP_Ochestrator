@@ -1,9 +1,9 @@
 package sevin.mcporchestrator.oss;
 
 public record OssAiServiceInfo(
-        long id,
-        int type,
-        int status,
+        String serviceType,
+        String status,
         int deductCredit,
-        String serviceDesc
+        String serviceDesc,
+        Integer inputLimit
 ) {}

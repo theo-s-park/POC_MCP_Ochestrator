@@ -7,5 +7,5 @@ public record WebExecuteRequest(
         String authorToken,
         String toolName,
         Map<String, Object> arguments,
-        Integer serviceType
+        String serviceType
 ) {}

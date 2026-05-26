@@ -31,8 +31,16 @@ public class McpAppEntity {
     @Column(columnDefinition = "TEXT")
     private String thumbnail;
 
+    private String serviceType;
+
     @Builder.Default
     private int credit = 0;
+
+    @Column(columnDefinition = "TEXT")
+    private String toolCreditsJson;
+
+    @Column(length = 100)
+    private String clientId;
 
     @Column(columnDefinition = "TEXT")
     private String description;

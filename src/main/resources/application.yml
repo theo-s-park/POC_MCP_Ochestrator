@@ -37,6 +37,15 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     show-sql: false
 
+oss:
+  api:
+    cookie: ${OSS_API_COOKIE:}
+  datasource:
+    url: ${OSS_DB_URL:}
+    username: ${OSS_DB_USERNAME:}
+    password: ${OSS_DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
 server:
   servlet:
     encoding:
