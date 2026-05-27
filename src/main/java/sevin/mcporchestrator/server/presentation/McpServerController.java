@@ -12,7 +12,6 @@ import sevin.mcporchestrator.common.exception.ErrorCode;
 import sevin.mcporchestrator.common.exception.McpException;
 import sevin.mcporchestrator.server.application.McpServerRecord;
 import sevin.mcporchestrator.server.application.McpServerService;
-import sevin.mcporchestrator.server.domain.ServerType;
 import sevin.mcporchestrator.server.exception.ServerNotFoundException;
 import sevin.mcporchestrator.server.infrastructure.McpServerRegistry;
 import tools.jackson.databind.JsonNode;
@@ -50,11 +49,7 @@ public class McpServerController {
         if (request.getUrl() == null || request.getUrl().isBlank()) {
             throw new McpException(ErrorCode.SERVER_URL_REQUIRED);
         }
-        ServerType type = request.getType() != null ? request.getType() : ServerType.MCP;
-        McpServerRecord record = service.register(
-            request.getName(), request.getUrl(),
-            request.getDescription(), request.getVersion(), type
-        );
+        McpServerRecord record = service.register(request.getUrl(), request.getName());
         return ResponseEntity.ok(Map.of(
             "serverId", record.getServerId(),
             "status", record.getStatus()
@@ -149,10 +144,7 @@ public class McpServerController {
 
     @Data
     public static class RegisterRequest {
-        private String name;
         private String url;
-        private String description;
-        private String version;
-        private ServerType type;
+        private String name;
     }
 }

@@ -62,12 +62,15 @@ public class HealthCheckPoller {
 
     private void pingMcp(McpServerRecord server) throws Exception {
         var req = java.util.Map.of("jsonrpc", "2.0", "id", 1, "method", "ping", "params", java.util.Map.of());
-        restClient.post()
+        String body = restClient.post()
             .uri(server.getUrl() + "/mcp")
             .contentType(MediaType.APPLICATION_JSON)
             .body(objectMapper.writeValueAsString(req))
             .retrieve()
-            .toBodilessEntity();
+            .body(String.class);
+        tools.jackson.databind.JsonNode root = objectMapper.readTree(body);
+        if (root == null || root.path("result").isMissingNode())
+            throw new RuntimeException("invalid MCP ping response: " + body);
     }
 
     private void pingHttp(McpServerRecord server) {

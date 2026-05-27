@@ -35,30 +35,30 @@ public class McpServerService {
         this.mcpAppRepository = mcpAppRepository;
     }
 
-    public McpServerRecord register(String name, String url, String description, String version, ServerType type) {
+    public McpServerRecord register(String url, String name) {
         Optional<McpServerRecord> existing = registry.findByUrl(url);
         String serverId = existing.map(McpServerRecord::getServerId)
             .orElse(UUID.randomUUID().toString());
         Instant registeredAt = existing.map(McpServerRecord::getRegisteredAt)
             .orElse(Instant.now());
 
+        String resolvedName = (name != null && !name.isBlank()) ? name : deriveNameFromUrl(url);
+
         McpServerRecord record = McpServerRecord.builder()
             .serverId(serverId)
-            .name(name)
+            .name(resolvedName)
             .url(url)
-            .description(description)
-            .version(version)
-            .type(type)
+            .type(ServerType.MCP)
             .status(ServerStatus.PENDING)
             .registeredAt(registeredAt)
             .healthCheckFailures(0)
             .build();
 
         registry.register(record);
-        log.info("[Registry] {}: {} ({}) type={}", existing.isPresent() ? "re-registered" : "registered", name, serverId, type);
+        log.info("[Registry] {}: {} ({}) type={}", existing.isPresent() ? "re-registered" : "registered", resolvedName, serverId, ServerType.MCP);
 
         for (McpCapabilityCollector collector : collectors) {
-            if (!collector.supports(type)) continue;
+            if (!collector.supports(ServerType.MCP)) continue;
             CollectResult result = collector.collect(serverId, url);
             if (collector.isRequired() && result != CollectResult.SUCCESS) {
                 log.warn("[Registry] required collector {} returned {} - marking REGISTRATION_FAILED: {}",
@@ -109,5 +109,14 @@ public class McpServerService {
 
     public List<McpServerRecord> list() {
         return registry.findAll();
+    }
+
+    private String deriveNameFromUrl(String url) {
+        try {
+            String host = new java.net.URI(url).getHost();
+            return host != null ? host : url;
+        } catch (Exception e) {
+            return url;
+        }
     }
 }

@@ -49,7 +49,22 @@ body::before {
 .app-card-header { padding:18px 20px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border); }
 .status-dot { width:8px; height:8px; border-radius:50%; background:var(--subtle); flex-shrink:0; }
 .status-dot.active { background:var(--green); box-shadow:0 0 0 3px var(--green-d); }
+.status-dot.pending { background:var(--amber); box-shadow:0 0 0 3px rgba(217,119,6,0.15); }
+.status-dot.inactive { background:var(--red); }
 .status-dot.registration_failed { background:var(--red); }
+.status-banner { padding:8px 20px; font-size:12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+.status-banner.pending { background:rgba(217,119,6,0.06); color:var(--amber); }
+.status-banner.inactive { background:rgba(220,38,38,0.06); color:var(--red); }
+.status-banner.registration_failed { background:rgba(220,38,38,0.06); color:var(--red); }
+.register-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:24px; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+.register-card-title { font-family:var(--font-head); font-size:14px; font-weight:700; margin-bottom:14px; }
+.register-row { display:flex; gap:10px; align-items:flex-end; }
+.register-row .field { flex:1; margin:0; }
+.btn-primary { background:var(--accent); color:#fff; border:none; }
+.btn-primary:hover { background:#4338ca; }
+.btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+.copy-btn { font-size:11px; padding:4px 8px; border-radius:4px; background:var(--surface2); border:1px solid var(--border); color:var(--muted); cursor:pointer; font-family:var(--font-mono); }
+.copy-btn:hover { border-color:var(--border-hi); color:var(--text); }
 .server-name { font-family:var(--font-head); font-size:16px; font-weight:700; }
 .server-url { font-family:var(--font-mono); font-size:11px; color:var(--muted); }
 .visible-badge { margin-left:auto; font-size:11px; padding:2px 8px; border-radius:4px; }
@@ -136,6 +151,20 @@ body::before {
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>Refresh
     </button>
   </div>
+  <div class="register-card">
+    <div class="register-card-title">새 MCP 서버 등록</div>
+    <div class="register-row">
+      <div class="field">
+        <label>Endpoint URL</label>
+        <input type="text" id="reg-url" placeholder="https://xxx.lambda-url.ap-northeast-2.on.aws" style="font-family:var(--font-mono);font-size:12px">
+      </div>
+      <div class="field" style="max-width:200px">
+        <label>이름 (선택)</label>
+        <input type="text" id="reg-name" placeholder="자동 추출">
+      </div>
+      <button class="btn btn-primary" id="reg-btn" onclick="registerServer()">등록</button>
+    </div>
+  </div>
   <div id="content"></div>
 </main>
 
@@ -198,18 +227,29 @@ function onToolServiceTypeChange(appId, toolName) {
 
 function renderApp(app) {
   const st = (app.serverStatus || '').toLowerCase();
+  const isActive = st === 'active';
+  const isPending = st === 'pending';
+  const isFailed = st === 'registration_failed' || st === 'inactive';
   const visibleClass = app.isVisible ? 'on' : 'off';
   const visibleText = app.isVisible ? 'Visible' : 'Hidden';
+
+  const statusBanner = isPending
+    ? `<div class="status-banner pending">⏳ 핸드셰이킹 대기 중 — MCP 서버 코드 배포 후 상태가 갱신됩니다.</div>`
+    : isFailed
+    ? `<div class="status-banner ${st}">⚠ 연결 실패 — endpoint를 확인하거나 재등록하세요.</div>`
+    : '';
+
   return `
   <div class="app-card">
     <div class="app-card-header">
       <div class="status-dot ${st}"></div>
       <div>
         <div class="server-name">${app.serverName}</div>
-        <div class="server-url">${app.serverUrl}</div>
+        <div class="server-url">${app.serverUrl} <button class="copy-btn" onclick="copyUrl('${app.serverUrl}')">복사</button></div>
       </div>
       <span class="visible-badge ${visibleClass}">${visibleText}</span>
     </div>
+    ${statusBanner}
     <div class="app-form" id="form-${app.id}">
       <div class="field">
         <label>Display Name</label>
@@ -231,10 +271,10 @@ function renderApp(app) {
         <label>Visible</label>
         <div class="toggle-row">
           <label class="toggle">
-            <input type="checkbox" id="${app.id}-isVisible" ${app.isVisible ? 'checked' : ''}>
+            <input type="checkbox" id="${app.id}-isVisible" ${app.isVisible ? 'checked' : ''} ${!isActive ? 'disabled' : ''}>
             <span class="toggle-slider"></span>
           </label>
-          <span style="font-size:12px;color:var(--muted)">앱 전체 노출</span>
+          <span style="font-size:12px;color:var(--muted)">${!isActive ? '서버 ACTIVE 상태에서만 노출 가능' : '앱 전체 노출'}</span>
         </div>
       </div>
       <div class="field full">
@@ -302,6 +342,39 @@ function toast(title, sub, type = 'ok', dur = 3000) {
   stack.appendChild(el);
   requestAnimationFrame(() => el.classList.add('in'));
   setTimeout(() => { el.classList.remove('in'); setTimeout(() => el.remove(), 300); }, dur);
+}
+
+async function registerServer() {
+  const url = document.getElementById('reg-url').value.trim();
+  const name = document.getElementById('reg-name').value.trim();
+  if (!url) { toast('URL을 입력해주세요', '', 'err'); return; }
+
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true;
+  btn.textContent = '등록 중...';
+
+  try {
+    const res = await fetch('/api/mcp/servers/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, name: name || null }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    toast('등록 완료', `${data.status}`, 'ok');
+    document.getElementById('reg-url').value = '';
+    document.getElementById('reg-name').value = '';
+    setTimeout(() => load(), 800);
+  } catch(e) {
+    toast('등록 실패', e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '등록';
+  }
+}
+
+function copyUrl(url) {
+  navigator.clipboard.writeText(url).then(() => toast('복사 완료', url, 'ok'));
 }
 
 load();

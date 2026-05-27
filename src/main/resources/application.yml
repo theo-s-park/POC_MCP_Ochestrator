@@ -2,7 +2,7 @@ spring:
   application:
     name: mcp-hub
   config:
-    import: optional:file:.env.local[.properties]
+    import: optional:file:.env[.properties],optional:file:.env.local[.properties]
 
   web:
     resources:
@@ -21,20 +21,20 @@ spring:
           model: gpt-4o-mini
 
   datasource:
-    url: jdbc:h2:file:./data/mcporchestrator
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: ${DB_URL:jdbc:h2:file:./data/mcporchestrator}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
 
   h2:
     console:
-      enabled: true
+      enabled: ${H2_CONSOLE:true}
       path: /h2-console
 
   jpa:
     hibernate:
       ddl-auto: update
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: ${DB_DIALECT:org.hibernate.dialect.H2Dialect}
     show-sql: false
 
 oss:
