@@ -13,6 +13,7 @@ public record McpAppPublicView(
     String thumbnail,
     String mcpUrl,
     String clientId,
+    String redirectUri,
     List<ToolSummary> tools
 ) {
     public record ToolSummary(
@@ -52,6 +53,7 @@ public record McpAppPublicView(
             app.getThumbnail(),
             server != null ? server.getUrl() : null,
             app.getClientId(),
+            app.getRedirectUri(),
             tools
         );
     }

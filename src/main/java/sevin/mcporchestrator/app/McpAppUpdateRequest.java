@@ -10,6 +10,7 @@ public class McpAppUpdateRequest {
     private String thumbnail;
     private String serviceType;
     private String clientId;
+    private String redirectUri;
     private Integer credit;
     private String description;
     private Boolean isVisible;

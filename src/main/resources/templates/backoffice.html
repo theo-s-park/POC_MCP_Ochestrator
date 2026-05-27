@@ -224,6 +224,10 @@ function renderApp(app) {
         <input type="text" id="${app.id}-clientId" value="${app.clientId || ''}" placeholder="cli_..." style="font-family:var(--font-mono);font-size:12px">
       </div>
       <div class="field">
+        <label>Redirect URI</label>
+        <input type="text" id="${app.id}-redirectUri" value="${app.redirectUri || ''}" placeholder="https://...">
+      </div>
+      <div class="field">
         <label>Visible</label>
         <div class="toggle-row">
           <label class="toggle">
@@ -268,6 +272,7 @@ async function save(id, tools) {
     displayName,
     thumbnail:    document.getElementById(`${id}-thumbnail`).value || null,
     clientId:     document.getElementById(`${id}-clientId`).value || null,
+    redirectUri:  document.getElementById(`${id}-redirectUri`).value || null,
     description:  document.getElementById(`${id}-description`).value || null,
     isVisible:    document.getElementById(`${id}-isVisible`).checked,
     toolCredits:  Object.keys(toolCredits).length ? toolCredits : null,

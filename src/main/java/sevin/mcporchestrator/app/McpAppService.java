@@ -68,6 +68,7 @@ public class McpAppService {
         if (request.getThumbnail() != null) app.setThumbnail(request.getThumbnail());
         if (request.getServiceType() != null) app.setServiceType(request.getServiceType());
         if (request.getClientId() != null) app.setClientId(request.getClientId());
+        if (request.getRedirectUri() != null) app.setRedirectUri(request.getRedirectUri());
         if (request.getCredit() != null) app.setCredit(request.getCredit());
         if (request.getDescription() != null) app.setDescription(request.getDescription());
         if (request.getIsVisible() != null) app.setVisible(request.getIsVisible());

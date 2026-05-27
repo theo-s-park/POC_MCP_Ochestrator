@@ -42,6 +42,9 @@ public class McpAppEntity {
     @Column(length = 100)
     private String clientId;
 
+    @Column(length = 500)
+    private String redirectUri;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
