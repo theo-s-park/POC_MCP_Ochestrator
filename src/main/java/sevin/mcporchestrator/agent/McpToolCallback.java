@@ -6,10 +6,10 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
-import sevin.mcporchestrator.registry.McpServerRegistry;
-import sevin.mcporchestrator.registry.domain.McpServerRecord;
-import sevin.mcporchestrator.registry.domain.McpTool;
-import sevin.mcporchestrator.registry.domain.ServerType;
+import sevin.mcporchestrator.server.application.McpServerRecord;
+import sevin.mcporchestrator.server.domain.McpTool;
+import sevin.mcporchestrator.server.domain.ServerType;
+import sevin.mcporchestrator.server.infrastructure.McpServerRegistry;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 

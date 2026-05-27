@@ -6,9 +6,10 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import sevin.mcporchestrator.registry.McpServerRegistry;
-import sevin.mcporchestrator.registry.domain.McpTool;
-import sevin.mcporchestrator.registry.domain.ServerStatus;
+import sevin.mcporchestrator.server.application.McpServerRecord;
+import sevin.mcporchestrator.server.domain.McpTool;
+import sevin.mcporchestrator.server.domain.ServerStatus;
+import sevin.mcporchestrator.server.infrastructure.McpServerRegistry;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;

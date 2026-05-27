@@ -9,6 +9,7 @@ public enum ErrorCode {
 
     // Server
     SERVER_NOT_FOUND(HttpStatus.NOT_FOUND, "SERVER_001", "MCP 서버를 찾을 수 없습니다."),
+    SERVER_URL_REQUIRED(HttpStatus.BAD_REQUEST, "SERVER_002", "서버 URL은 필수입니다."),
 
     // Resource
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "RESOURCE_001", "리소스를 찾을 수 없습니다."),

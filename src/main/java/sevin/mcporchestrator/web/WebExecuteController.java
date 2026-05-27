@@ -8,14 +8,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
-import sevin.mcporchestrator.app.McpAppEntity;
-import sevin.mcporchestrator.app.McpAppRepository;
+import sevin.mcporchestrator.app.domain.McpAppEntity;
+import sevin.mcporchestrator.app.exception.AppNotFoundException;
+import sevin.mcporchestrator.app.infrastructure.McpAppRepository;
 import sevin.mcporchestrator.auth.OAuthClient;
-import sevin.mcporchestrator.common.exception.McpAppNotFoundException;
-import sevin.mcporchestrator.common.exception.McpServerNotFoundException;
 import sevin.mcporchestrator.oss.OssAiServiceRepository;
-import sevin.mcporchestrator.registry.McpServerRegistry;
-import sevin.mcporchestrator.registry.domain.McpServerRecord;
+import sevin.mcporchestrator.server.application.McpServerRecord;
+import sevin.mcporchestrator.server.domain.ServerType;
+import sevin.mcporchestrator.server.exception.ServerNotFoundException;
+import sevin.mcporchestrator.server.infrastructure.McpServerRegistry;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -61,10 +62,10 @@ public class WebExecuteController {
     public WebExecuteResponse execute(@RequestBody WebExecuteRequest req) throws Exception {
         // 1. app → server 조회
         McpAppEntity app = appRepository.findById(req.appId())
-                .orElseThrow(McpAppNotFoundException::new);
+                .orElseThrow(AppNotFoundException::new);
 
         McpServerRecord server = registry.find(app.getMcpServerId())
-                .orElseThrow(McpServerNotFoundException::new);
+                .orElseThrow(ServerNotFoundException::new);
 
         // 2. authorToken → accessToken
         String accessToken = oAuthClient.exchangeAccessToken(req.authorToken());
@@ -86,7 +87,7 @@ public class WebExecuteController {
         String responseBody;
         JsonNode result;
 
-        if (server.getType() == sevin.mcporchestrator.registry.domain.ServerType.WEBAPP) {
+        if (server.getType() == ServerType.WEBAPP) {
             Map<String, Object> webReq = new HashMap<>();
             webReq.put("name", req.toolName());
             webReq.put("arguments", arguments);
