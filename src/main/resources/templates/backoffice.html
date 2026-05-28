@@ -25,7 +25,7 @@ body::before {
   background-size:28px 28px;
 }
 .sidebar { width:var(--sidebar-w); min-height:100vh; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; position:fixed; top:0; left:0; z-index:100; }
-.sidebar-logo { padding:28px 24px 24px; font-family:var(--font-head); font-size:22px; font-weight:800; letter-spacing:-.5px; }
+.sidebar-logo { padding:28px 24px 24px; font-family:var(--font-head); font-size:17px; font-weight:800; letter-spacing:-.3px; white-space:nowrap; }
 .sidebar-logo span { color:var(--accent); }
 .sidebar-divider { height:1px; background:var(--border); margin:0 16px 12px; }
 .nav-section { padding:0 12px; flex:1; }
@@ -438,21 +438,18 @@ async function runProbe(method) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    if (method === 'tools/list') {
-      const tools = data.tools || data.result?.tools || [];
-      if (!tools.length) { body.innerHTML = '<div class="probe-empty">tools 없음</div>'; return; }
-      body.innerHTML = tools.map(t => `
+    const items = method === 'tools/list'
+      ? (data.tools || data.result?.tools || [])
+      : method === 'resources/list'
+      ? (data.resources || data.result?.resources || [])
+      : null;
+
+    if (items !== null) {
+      if (!items.length) { body.innerHTML = '<div class="probe-empty">없음</div>'; return; }
+      body.innerHTML = items.map(item => `
         <div class="probe-item">
-          <div class="probe-item-name">${escProbe(t.name)}</div>
-          <div class="probe-item-desc">${escProbe(t.description || '—')}</div>
-        </div>`).join('');
-    } else if (method === 'resources/list') {
-      const resources = data.resources || data.result?.resources || [];
-      if (!resources.length) { body.innerHTML = '<div class="probe-empty">resources 없음</div>'; return; }
-      body.innerHTML = resources.map(r => `
-        <div class="probe-item">
-          <div class="probe-item-name">${escProbe(r.uri || r.name)}</div>
-          <div class="probe-item-desc">${escProbe(r.description || r.mimeType || '—')}</div>
+          <div class="probe-item-name">${escProbe(item.name || item.uri)}</div>
+          <pre class="probe-raw" style="margin-top:8px;font-size:11px">${escProbe(JSON.stringify(item, null, 2))}</pre>
         </div>`).join('');
     } else {
       body.innerHTML = `<pre class="probe-raw">${escProbe(JSON.stringify(data, null, 2))}</pre>`;
