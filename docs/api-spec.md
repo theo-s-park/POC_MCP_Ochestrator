@@ -1,35 +1,34 @@
 # MCP 관리 서버 API 명세
 
-이 문서는 **MCP 관리 서버가 내부 소비자(WEB, WAS, Backoffice)에게 제공하는 API**를 정의한다.
+이 문서는 **MCP 관리 서버가 내부 소비자(WEB FE, Backoffice)에게 제공하는 API**를 정의한다.
 
-Base URL: `http://localhost:8080` (로컬) / `http://3.34.126.190:8080` (EC2)
+Base URL: `http://54.241.171.136:8080` (TB EC2)  
+Swagger UI: `http://54.241.171.136:8080/swagger-ui/index.html`
 
 ---
 
 ## Wrapper 개요
 
-전체 흐름 시퀀스 다이어그램: [docs/img/sequence-diagram.md](./img/sequence-diagram.md)
-
 ### 왜 Wrapper가 필요한가
 
-MCP 서버(hwp-converter 등)는 [MCP 공식 스펙 `2024-11-05`](https://modelcontextprotocol.io)에 따라 Tool 실행 결과를 아래 구조로만 반환한다.
+MCP 서버는 Tool 실행 결과를 아래 구조로만 반환한다.
 
 ```json
 { "content": [{ "type": "text", "text": "..." }] }
 ```
 
-이 구조는 "Tool이 무엇을 반환했는가"만 담고 있다. MCP 관리 서버가 소비자(WEB, WAS, Backoffice)에게 서비스를 제공하려면 이것만으로는 부족하다.
+이 구조는 "Tool이 무엇을 반환했는가"만 담고 있다. WEB FE가 서비스를 노출하려면 이것만으로는 부족하다.
 
 - **WEB**은 도구를 노출하기 위해 표시 이름, 썸네일, 설명, 실행 비용(크레딧)이 필요하다
 - **Backoffice**는 각 도구의 공개 여부·비용·설명을 중앙에서 제어해야 한다
 
-이를 위해 MCP 관리 서버는 MCP 표준 응답을 변형하지 않고 **상위에 Wrapper 객체를 추가**한다.
+MCP 관리 서버는 MCP 표준 응답을 변형하지 않고 **상위에 Wrapper 객체를 추가**한다.
 
 ---
 
 ### Wrapper 필드 목록
 
-**앱 메타데이터 Wrapper** - Backoffice에서 설정하며, WEB이 읽는다.
+**앱 메타데이터 Wrapper** — Backoffice에서 설정, WEB이 읽는다.
 
 | 필드 | 설정 주체 | 소비 주체 | 설명 |
 |---|---|---|---|
@@ -39,18 +38,7 @@ MCP 서버(hwp-converter 등)는 [MCP 공식 스펙 `2024-11-05`](https://modelc
 | `isVisible` | Backoffice | WEB | 공개 앱 목록 노출 여부 |
 | `toolCredits` | Backoffice | WEB | 툴별 크레딧 설정 (`Map<toolName, {serviceType, deductCredit, visible}>`) |
 
-> 크레딧은 앱 단위가 아닌 **툴 단위**로 설정한다. Backoffice에서 각 툴마다 serviceType과 deductCredit을 독립적으로 지정한다. MCP 관리 서버는 tools/call 시 해당 툴의 `arguments.credit`을 자동 주입하며, MCP/WEBAPP 서버가 실행 성공 후 직접 크레딧 서버를 호출해 차감한다.
-
-**실행 결과 Wrapper** - Tool 실행 시 MCP 관리 서버가 생성 (현재 임시 구현)
-
-| 필드 | 설명 |
-|---|---|
-| `creditUsed` | 이번 요청에서 소모된 총 크레딧 (trace 전체 합산) |
-| `trace[].toolName` | 실행된 Tool 이름 |
-| `trace[].server` | Tool이 속한 MCP 서버 이름 |
-| `trace[].credit` | 해당 Tool 호출에 적용된 크레딧 (Backoffice 설정값) |
-| `trace[].args` | Tool에 전달된 파라미터 |
-| `trace[].result` | MCP 서버 원본 응답 **(MCP 표준, 변경 불가)** |
+> 크레딧은 앱 단위가 아닌 **툴 단위**로 설정한다. Backoffice에서 각 툴마다 serviceType과 deductCredit을 독립적으로 지정한다.
 
 ---
 
@@ -58,36 +46,30 @@ MCP 서버(hwp-converter 등)는 [MCP 공식 스펙 `2024-11-05`](https://modelc
 
 | 소비자 | 엔드포인트 |
 |---|---|
-| **MCP 서버 CI/CD** | `POST /api/mcp/servers/register` |
-| **Backoffice** | `GET /api/mcp/servers` · `GET /api/mcp/servers/{id}` · `DELETE /api/mcp/servers/{id}` · `GET /api/mcp/servers/{id}/probe` · `GET /api/mcp/servers/{id}/resources/content` · `GET /api/mcp/apps` · `PATCH /api/mcp/apps/{id}` |
-| **WEB** | `GET /api/mcp/apps/public` · `GET /api/mcp/servers/{id}/resources/content` |
-| **WEB (임시 데모)** | `POST /agent/chat` |
+| **Backoffice** | `POST /api/mcp/servers/register` · `DELETE /api/mcp/servers/{id}` · `GET /api/mcp/servers/{id}/probe` · `GET /api/mcp/apps` · `PATCH /api/mcp/apps/{id}` · `GET /api/oss/service-types` |
+| **WEB** | `GET /api/mcp/apps/public` · `POST /api/web/execute` |
 
 ---
 
-## MCP 서버 등록 (CI/CD 파이프라인)
-
-MCP 서버 배포 시 CI/CD 파이프라인에서 자동 호출한다.
+## Backoffice
 
 ### POST /api/mcp/servers/register
+
+Backoffice UI에서 URL 입력 후 등록 버튼 클릭 시 호출된다.
 
 **Request**
 ```json
 {
   "name": "hwp-converter",
   "url": "https://hwp-converter.internal",
-  "description": "HWP 파일을 PDF로 변환하는 MCP 서버",
-  "version": "1.0.0",
   "type": "MCP"
 }
 ```
 
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---|---|
-| `name` | string | O | 서버 등록명 |
 | `url` | string | O | MCP 서버 Base URL |
-| `description` | string | 선택 | 서버 설명 |
-| `version` | string | 선택 | 서버 버전 |
+| `name` | string | 선택 | 서버 등록명 (미입력 시 URL에서 자동 추출) |
 | `type` | string | 선택 | `MCP` (기본값) / `WEBAPP` |
 
 **Response 200**
@@ -98,102 +80,7 @@ MCP 서버 배포 시 CI/CD 파이프라인에서 자동 호출한다.
 }
 ```
 
-| 필드 | 타입 | 설명 |
-|---|---|---|
-| `serverId` | string (UUID) | 등록된 서버 ID (같은 URL로 재등록 시 기존 ID 유지) |
-| `status` | string | `ACTIVE` / `REGISTRATION_FAILED` |
-
 > 등록 완료 후 자동 수집한다. `type=MCP`이면 `tools/list` · `resources/list` (JSON-RPC), `type=WEBAPP`이면 `GET /tools` · `GET /resources` (REST)로 수집한다.
-
----
-
-## Backoffice
-
-### GET /api/mcp/servers
-
-등록된 MCP 서버 전체 목록. Tool, Resource, 앱 메타데이터 포함.
-
-**Response 200**
-```json
-{
-  "servers": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "hwp-converter",
-      "url": "https://hwp-converter.internal",
-      "description": "HWP 파일을 PDF로 변환하는 MCP 서버",
-      "status": "ACTIVE",
-      "type": "MCP",
-      "registeredAt": "2026-05-15T03:00:00Z",
-      "displayName": "HWP 변환기",
-      "thumbnail": "https://example.com/icon.png",
-      "credit": 5,
-      "appDescription": "HWP 파일을 PDF로 변환합니다",
-      "isVisible": true,
-      "tools": [
-        {
-          "name": "convert_hwp_to_pdf",
-          "description": "HWP 파일을 PDF로 변환",
-          "inputSchema": {
-            "type": "object",
-            "properties": {
-              "fileUrl": { "type": "string", "description": "변환할 HWP 파일 URL" }
-            },
-            "required": ["fileUrl"]
-          }
-        }
-      ],
-      "resources": [
-        {
-          "uri": "image://logo.png",
-          "name": "App Logo",
-          "mimeType": "image/png"
-        }
-      ]
-    }
-  ]
-}
-```
-
-| 필드 | 타입 | 설명 |
-|---|---|---|
-| `id` | string (UUID) | 서버 고유 ID |
-| `name` | string | 서버 등록명 |
-| `url` | string | MCP 서버 Base URL |
-| `status` | string | `ACTIVE` / `INACTIVE` / `PENDING` / `REGISTRATION_FAILED` |
-| `type` | string | `MCP` / `WEBAPP` |
-| `registeredAt` | string (ISO 8601) | 최초 등록 시각 |
-| `displayName` | string \| null | Backoffice 설정값 |
-| `thumbnail` | string \| null | 썸네일 URL (리소스에서 자동 추출 또는 수동 설정) |
-| `credit` | integer | Tool 실행 시 차감 크레딧 |
-| `appDescription` | string \| null | 공개용 앱 설명 |
-| `isVisible` | boolean | WEB 공개 여부 |
-| `tools` | array | 수집된 Tool 목록 |
-| `resources` | array | 수집된 Resource 목록 |
-
----
-
-### GET /api/mcp/servers/{serverId}
-
-특정 서버 단건 조회. 응답 구조는 `GET /api/mcp/servers` 배열 원소와 동일.
-
-**Response 404**: 서버 없음
-
----
-
-### GET /api/mcp/servers/{serverId}/probe
-
-등록된 서버에 MCP 메서드를 실시간 호출해 결과를 반환한다. 캐시 없이 서버에 직접 요청한다.
-
-**Query Parameter**
-
-| 파라미터 | 타입 | 필수 | 설명 |
-|---|---|---|---|
-| `method` | string | O | `tools/list` / `resources/list` |
-
-**Response 200**: 해당 MCP 서버의 JSON-RPC 2.0 원본 응답
-
-**Response 404**: 서버 없음
 
 ---
 
@@ -206,19 +93,19 @@ MCP 서버 배포 시 CI/CD 파이프라인에서 자동 호출한다.
 { "status": "ok" }
 ```
 
-**Response 404**: 서버 없음
-
 ---
 
-### GET /api/mcp/servers/{serverId}/resources/content?uri={uri}
+### GET /api/mcp/servers/{serverId}/probe
 
-MCP 서버의 리소스 내용을 프록시로 반환. WEB도 동일 엔드포인트 사용.
+등록된 서버에 메서드를 실시간 직접 호출해 결과를 반환한다. 캐시 없이 서버에 직접 요청한다.
 
-| 파라미터 | 타입 | 필수 | 설명 |
-|---|---|---|---|
-| `uri` | string | O | 리소스 URI (URL 인코딩 필요) |
+**Query Parameter**
 
-**Response**: 리소스 Content-Type 그대로 반환 (`image/png`, `text/plain` 등)
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `method` | string | `tools/list` / `resources/list` / `ping` |
+
+**Response 200**: 해당 서버의 원본 응답 JSON
 
 ---
 
@@ -276,8 +163,8 @@ MCP 서버의 리소스 내용을 프록시로 반환. WEB도 동일 엔드포�
 
 | 필드 | 타입 | 설명 |
 |---|---|---|
-| `toolCredits` | object | 툴명 → `{serviceType, deductCredit, visible}` 맵. null 전송 시 무시 |
-| `toolCredits.*.serviceType` | string | OSS 서비스 타입 식별자 (예: `"GPT3"`, `"PO_ASK_DOC"`) |
+| `toolCredits` | object | 툴명 → `{serviceType, deductCredit, visible}` 맵 |
+| `toolCredits.*.serviceType` | string | OSS 서비스 타입 식별자 (예: `"GPT3"`) |
 | `toolCredits.*.deductCredit` | integer | 툴 실행 1회당 차감 크레딧 |
 | `toolCredits.*.visible` | boolean | `false`면 공개 API 응답에서 해당 툴 제외 |
 
@@ -286,7 +173,25 @@ MCP 서버의 리소스 내용을 프록시로 반환. WEB도 동일 엔드포�
 { "status": "ok" }
 ```
 
-**Response 404**: 앱 없음
+---
+
+### GET /api/oss/service-types
+
+OSS tbAIServiceInfo에서 활성 서비스 타입 목록을 반환한다.  
+Backoffice에서 툴별 serviceType 드롭다운 구성 시 사용한다.
+
+**Response 200**
+```json
+[
+  {
+    "serviceType": "2",
+    "status": "ON",
+    "deductCredit": 2,
+    "serviceDesc": "AI WRITE_GPT-3.5",
+    "inputLimit": null
+  }
+]
+```
 
 ---
 
@@ -301,10 +206,13 @@ MCP 서버의 리소스 내용을 프록시로 반환. WEB도 동일 엔드포�
 [
   {
     "id": "app-uuid",
+    "serverId": "server-uuid",
     "displayName": "HWP 변환기",
     "description": "HWP 파일을 PDF로 변환",
     "thumbnail": "https://example.com/icon.png",
     "mcpUrl": "https://hwp-converter.internal",
+    "clientId": "cli_xxx",
+    "redirectUri": "https://your-app.com/callback",
     "tools": [
       {
         "name": "convert_hwp_to_pdf",
@@ -324,59 +232,62 @@ MCP 서버의 리소스 내용을 프록시로 반환. WEB도 동일 엔드포�
 ]
 ```
 
-> - 앱 레벨 `credit` 필드는 없다. 크레딧은 툴 단위로 내려온다.
-> - `visible=false`로 설정된 툴은 이 응답에서 제외된다.
+> - 크레딧은 툴 단위로 내려온다.  
+> - `visible=false`로 설정된 툴은 이 응답에서 제외된다.  
+> - `serverId`는 probe 호출 시 사용한다.
 
 ---
 
-## WEB - 임시 데모
+### POST /api/web/execute
 
-> **이 섹션은 임시 구현이다.** MCP 관리 서버에 LLM Agent를 직접 붙여 자연어 질문 → Tool 자동 선택 → 실행까지 처리하는 구조로, 동작 검증 목적으로만 사용한다. 실제 프로덕션 플로우에서는 사용하지 않는다.
-
-### POST /agent/chat
+WEB에서 특정 Tool을 직접 실행한다.  
+MCP 관리 서버가 OAuth 토큰 교환 → 크레딧 주입 → MCP 서버 forwarding을 처리한다.
 
 **Request**
 ```json
 {
-  "message": "서울 날씨 알려줘",
-  "sessionId": "optional-session-id"
+  "appId": "app-uuid",
+  "authorToken": "oauth-author-token",
+  "toolName": "convert_hwp_to_pdf",
+  "arguments": {
+    "fileUrl": "https://example.com/doc.hwp"
+  },
+  "serviceType": "GPT3"
 }
 ```
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `appId` | string | O | 앱 UUID (`GET /api/mcp/apps/public` 응답의 `id`) |
+| `authorToken` | string | O | OAuth author token (MCP 관리 서버가 access token으로 교환) |
+| `toolName` | string | O | 실행할 Tool 이름 |
+| `arguments` | object | 선택 | Tool 파라미터 |
+| `serviceType` | string | 선택 | 크레딧 주입용 서비스 타입. 미전달 시 credit 미주입 |
 
 **Response 200**
 ```json
 {
-  "sessionId": "8f111f71",
-  "answer": "서울의 현재 날씨는 맑음, 기온 22°C입니다.",
-  "creditUsed": 5,
-  "trace": [
-    {
-      "toolName": "get_current_weather",
-      "server": "weather-mcp",
-      "credit": 5,
-      "args": "{\"city\":\"서울\"}",
-      "result": "{\"content\":[{\"type\":\"text\",\"text\":\"맑음, 22°C\"}]}"
-    }
-  ]
+  "appId": "app-uuid",
+  "toolName": "convert_hwp_to_pdf",
+  "result": {
+    "content": [
+      { "type": "text", "text": "변환 완료. 다운로드 URL: https://..." }
+    ]
+  },
+  "creditUsed": 5
 }
 ```
 
-| 필드 | 레이어 | 설명 |
-|---|---|---|
-| `sessionId` | Wrapper | 요청 세션 ID |
-| `answer` | Wrapper (임시) | LLM이 생성한 최종 답변 |
-| `creditUsed` | Wrapper | 이번 요청 소모 크레딧 합산 |
-| `trace[].toolName` | Wrapper | 실행된 Tool 이름 |
-| `trace[].server` | Wrapper | Tool이 속한 MCP 서버 이름 |
-| `trace[].credit` | Wrapper | 해당 Tool 호출 크레딧 |
-| `trace[].args` | Wrapper | Tool 파라미터 (JSON string) |
-| `trace[].result` | **MCP 표준** | MCP 서버 원본 응답 (변경 불가) |
+| 필드 | 설명 |
+|---|---|
+| `result` | MCP 서버 원본 응답 (MCP 표준, 변경 불가) |
+| `creditUsed` | 이번 요청에 적용된 크레딧 |
 
 ---
 
 ## DB 스키마
 
-> H2 File DB (`./data/mcporchestrator.mv.db`). Hibernate `ddl-auto: update` 로 자동 생성.
+> MySQL (`pclouddeveloper` RDS). Hibernate `ddl-auto: update`로 자동 생성.
 
 ### mcp_server
 
@@ -385,10 +296,8 @@ CREATE TABLE mcp_server (
     server_id            VARCHAR(36)   PRIMARY KEY,
     name                 VARCHAR(255)  NOT NULL,
     url                  VARCHAR(255)  NOT NULL,
-    description          VARCHAR(255),
-    version              VARCHAR(255),
-    type                 VARCHAR(20)   NOT NULL DEFAULT 'MCP',   -- MCP | WEBAPP
-    status               VARCHAR(30)   NOT NULL,                  -- PENDING | ACTIVE | INACTIVE | REGISTRATION_FAILED
+    type                 VARCHAR(20)   NOT NULL DEFAULT 'MCP',
+    status               VARCHAR(30)   NOT NULL,
     tools_json           TEXT,
     resources_json       TEXT,
     registered_at        TIMESTAMP,
@@ -398,11 +307,9 @@ CREATE TABLE mcp_server (
 
 | 컬럼 | 설명 |
 |---|---|
-| `server_id` | UUID. 동일 URL 재등록 시 재사용 |
-| `type` | `MCP` — tools/list 수집 후 등록. `WEBAPP` — 수집 생략 |
-| `status` | 헬스체크 3회 연속 실패 → `INACTIVE`. 복구 시 자동 `ACTIVE` |
+| `type` | `MCP` / `WEBAPP` |
+| `status` | `PENDING` / `ACTIVE` / `INACTIVE` / `REGISTRATION_FAILED` |
 | `tools_json` | `tools/list` 응답 JSON 직렬화 배열 |
-| `resources_json` | `resources/list` 응답 JSON 직렬화 배열 |
 | `health_check_failures` | 연속 실패 횟수. 성공 시 0 리셋 |
 
 ---
@@ -417,8 +324,6 @@ CREATE TABLE mcp_app (
     mcp_server_id      VARCHAR(36)   NOT NULL UNIQUE,
     display_name       VARCHAR(255),
     thumbnail          TEXT,
-    service_type       VARCHAR(255),
-    credit             INT           NOT NULL DEFAULT 0,
     tool_credits_json  TEXT,
     description        TEXT,
     is_visible         BOOLEAN       NOT NULL DEFAULT FALSE,
@@ -429,9 +334,5 @@ CREATE TABLE mcp_app (
 | 컬럼 | 설명 |
 |---|---|
 | `mcp_server_id` | `mcp_server.server_id` 참조. UNIQUE (1:1) |
-| `display_name` | Backoffice 설정. WEB 노출명 |
-| `thumbnail` | 이미지 URL. `resources/list` image/* 에서 자동 추출 또는 수동 설정 |
-| `service_type` | 앱 레벨 서비스 타입 (현재 미사용, 향후 확장용) |
-| `credit` | 앱 레벨 크레딧 (현재 미사용, `tool_credits_json`으로 대체) |
 | `tool_credits_json` | 툴별 크레딧 설정 JSON. `Map<toolName, {serviceType, deductCredit, visible}>` 형태 |
-| `is_visible` | `true` 인 앱만 `GET /api/mcp/apps/public` 에 노출 |
+| `is_visible` | `true`인 앱만 `GET /api/mcp/apps/public`에 노출 |

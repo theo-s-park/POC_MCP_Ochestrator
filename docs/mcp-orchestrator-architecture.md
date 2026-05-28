@@ -27,16 +27,16 @@ stdio는 로컬 환경 전용이다.
 
 ---
 
-## MCP 서버가 /health와 /mcp를 가져야 하는 이유
+## MCP 서버가 갖춰야 하는 것
 
-HTTP 방식에서 MCP 서버는 두 엔드포인트를 노출해야 한다.
+HTTP 방식에서 MCP 서버(MCP 타입 기준)는 다음 엔드포인트를 노출해야 한다.
 
 ```
-GET  /health   →  { "status": "ok" }   ← MCP 관리 서버가 생존 여부 폴링
-POST /mcp      →  JSON-RPC 2.0         ← 실제 툴 호출 진입점
+POST /mcp   →  JSON-RPC 2.0   ← ping(헬스체크) + tools/list + tools/call 등 모든 메서드
 ```
 
-**/health** — MCP 관리 서버가 60초마다 호출해 서버가 살아있는지 확인한다. 3회 연속 실패하면 INACTIVE로 전환되어 라우팅 대상에서 제외된다.
+**헬스체크 — ping** — MCP 관리 서버가 20초마다 `POST /mcp`로 `ping` 메서드를 호출해 서버가 살아있는지 확인한다. 3회 연속 실패하면 INACTIVE로 전환되어 라우팅 대상에서 제외된다.  
+`ping`을 구현하지 않은 서버도 `{"error": {"code": -32601}}` 응답을 반환하는 한 헬스체크를 통과한다.
 
 **/mcp** — MCP 표준 엔드포인트. tools/list, tools/call, resources/list 등 모든 JSON-RPC 메서드를 이 하나의 경로로 받는다. Vercel, DeepWiki 같은 공개 서버도 동일한 경로를 사용하기 때문에, MCP 관리 서버는 외부 공개 MCP 서버도 그대로 등록해서 사용할 수 있다.
 
@@ -85,9 +85,9 @@ MCP 관리 서버는 올바른 순서로 연결하는 중계자다. 크레딧 �
 
 등록된 MCP 서버 목록을 관리한다.
 
-- `POST /api/mcp/servers/register` — 서버 등록 (CI/CD 파이프라인에서 자동 호출)
+- `POST /api/mcp/servers/register` — 서버 등록 (Backoffice UI에서 수동 등록)
 - 등록 시 tools/list · resources/list 자동 수집
-- 헬스체크 폴링 (60초 간격, 3회 연속 실패 → INACTIVE)
+- 헬스체크 폴링 (20초 간격, 3회 연속 실패 → INACTIVE)
 
 ### 2. 크레딧 차감
 
@@ -122,8 +122,8 @@ Backoffice에서 설정한 앱·툴 메타데이터를 상위에 래핑해서 �
 
 ## 주요 기능 확인
 
-기준 URL: `http://3.38.49.228:8080`
-Swagger UI: `http://3.38.49.228:8080/swagger-ui/index.html`
+기준 URL: `http://54.241.171.136:8080`
+Swagger UI: `http://54.241.171.136:8080/swagger-ui/index.html`
 
 ### MCP 서버 등록
 
