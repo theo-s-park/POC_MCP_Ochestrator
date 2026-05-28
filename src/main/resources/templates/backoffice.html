@@ -67,7 +67,7 @@ body::before {
 .copy-btn:hover { border-color:var(--border-hi); color:var(--text); }
 .server-name { font-family:var(--font-head); font-size:16px; font-weight:700; }
 .server-url { font-family:var(--font-mono); font-size:11px; color:var(--muted); }
-.visible-badge { margin-left:auto; font-size:11px; padding:2px 8px; border-radius:4px; }
+.visible-badge { font-size:11px; padding:2px 8px; border-radius:4px; }
 .visible-badge.on { background:var(--green-d); color:var(--green); }
 .visible-badge.off { background:var(--surface2); color:var(--muted); border:1px solid var(--border); }
 .app-form { padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -274,8 +274,10 @@ function renderApp(app) {
         <div class="server-name">${app.serverName}</div>
         <div class="server-url">${app.serverUrl} <button class="copy-btn" onclick="copyUrl('${app.serverUrl}')">복사</button></div>
       </div>
-      <button class="btn-probe" onclick="openProbeModal('${app.mcpServerId}','${app.serverName}')">Probe</button>
-      <span class="visible-badge ${visibleClass}">${visibleText}</span>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <button class="btn-probe" onclick="openProbeModal('${app.mcpServerId}','${app.serverName}')">Probe</button>
+        <span class="visible-badge ${visibleClass}">${visibleText}</span>
+      </div>
     </div>
     ${statusBanner}
     <div class="app-form" id="form-${app.id}">
