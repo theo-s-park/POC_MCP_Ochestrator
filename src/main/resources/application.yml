@@ -35,11 +35,12 @@ spring:
     hibernate:
       ddl-auto: update
     database-platform: ${DB_DIALECT:org.hibernate.dialect.H2Dialect}
+    properties:
+      hibernate:
+        globally_quoted_identifiers: false
     show-sql: false
 
 oss:
-  api:
-    cookie: ${OSS_API_COOKIE:}
   datasource:
     url: ${OSS_DB_URL:}
     username: ${OSS_DB_USERNAME:}
@@ -55,7 +56,7 @@ server:
 mcp:
   orchestrator:
     health-check:
-      interval: 60000
+      interval: 20000
   oauth:
     # 실제 OAuth 서버 연동 시 아래 주석 해제 후 URL 설정
     # access-token-url: http://oauth-server/api/token/exchange

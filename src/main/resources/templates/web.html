@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>MCP Marketplace</title>
+<title>MCP 통합 관리 서버 — WebUI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15,7 +15,7 @@
   --blue:#2563eb;--blue-d:rgba(37,99,235,0.10);
   --amber:#d97706;--red:#dc2626;
   --green:#16a34a;--green-d:rgba(22,163,74,0.10);
-  --sidebar-w:228px;--radius:12px;
+  --sidebar-w:252px;--radius:12px;
   --font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;
 }
 body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;display:flex;min-height:100vh}
@@ -138,23 +138,11 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radia
 <body>
 
 <aside class="sidebar">
-  <div class="sidebar-logo">MCP<span>Hub</span></div>
+  <div class="sidebar-logo">MCP <span>통합 관리 서버</span></div>
   <div class="sidebar-divider"></div>
   <nav class="nav-section">
-    <a href="/" class="nav-item">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Servers
-    </a>
-    <a href="/tools" class="nav-item">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Tools
-    </a>
-    <a href="/demo" class="nav-item">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Agent Demo
-    </a>
-    <a href="/agent" class="nav-item">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Agent Chat
-    </a>
     <a href="/web" class="nav-item active">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>Marketplace
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>WebUI (임시)
     </a>
     <a href="/backoffice" class="nav-item">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Backoffice
@@ -165,7 +153,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radia
 <main class="main">
   <div class="hero" style="display:flex;align-items:flex-start;justify-content:space-between">
     <div>
-      <h1 class="hero-title">MCP <span>Marketplace</span></h1>
+      <h1 class="hero-title">MCP <span>WebUI</span></h1>
       <p class="hero-sub">등록된 MCP 앱을 탐색하고 Agent를 통해 바로 사용해보세요.</p>
     </div>
     <button onclick="load()" style="margin-top:6px;background:none;border:1px solid var(--border);border-radius:7px;padding:7px 14px;font-size:12px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:var(--font-body)">
@@ -274,8 +262,11 @@ function openDrawer(app) {
 
   document.getElementById('drawerBody').innerHTML = `
     <div>
-      <div class="section-label">사용 가능한 Tools</div>
-      ${toolsHtml || '<div style="color:var(--muted);font-size:12px">tool 없음</div>'}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="section-label" style="margin-bottom:0">사용 가능한 Tools</div>
+        <button id="probeToolsBtn" onclick="probeTools()" style="font-size:11px;padding:3px 10px;border-radius:5px;background:var(--blue-d);color:var(--blue);border:1px solid rgba(37,99,235,.2);cursor:pointer;font-family:var(--font-body)">↻ 실시간 조회</button>
+      </div>
+      <div id="liveToolsArea">${toolsHtml || '<div style="color:var(--muted);font-size:12px">tool 없음</div>'}</div>
     </div>
 
     <div>
@@ -291,22 +282,7 @@ function openDrawer(app) {
       </div>
     </div>
 
-    <div>
-      <div class="section-label">Agent에게 질문하기</div>
-      <div class="chat-box">
-        <textarea id="drawerInput" class="chat-textarea" placeholder="예: 서울 날씨 알려줘 / spring-ai 레포 구조 알려줘" rows="3"></textarea>
-        <div class="chat-send-row">
-          <span class="chat-hint">이 앱의 tool을 Agent가 자동으로 선택합니다</span>
-          <button class="btn-send" id="drawerSendBtn" onclick="sendChat()">실행</button>
-        </div>
-      </div>
-    </div>
-    <div id="drawerOutput"></div>
   `;
-
-  document.getElementById('drawerInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendChat();
-  });
 
   document.getElementById('overlay').classList.add('open');
   document.getElementById('drawer').classList.add('open');
@@ -388,15 +364,7 @@ async function runDirect() {
   resultEl.innerHTML = '<span style="color:var(--muted);font-style:italic">처리 중...</span>';
 
   try {
-    // 1. authorToken 발급 (stub — OAuth 서버 연동 후 URL 교체)
-    const authRes = await fetch('/api/auth/stub/author-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: 'web-user' })
-    });
-    const { authorToken } = await authRes.json();
-
-    // 2. 실행
+    const authorToken = 'web-ui';
     const res = await fetch('/api/web/execute', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -431,56 +399,32 @@ function closeDrawer() {
   currentApp = null;
 }
 
-async function sendChat() {
-  const q = document.getElementById('drawerInput').value.trim();
-  if (!q) return;
-
-  const btn = document.getElementById('drawerSendBtn');
+async function probeTools() {
+  if (!currentApp?.serverId) return;
+  const btn = document.getElementById('probeToolsBtn');
+  const area = document.getElementById('liveToolsArea');
+  if (!btn || !area) return;
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"><span></span><span></span><span></span></span>';
-
-  const out = document.getElementById('drawerOutput');
-  const thinkId = 'think_' + Date.now();
-  out.insertAdjacentHTML('afterbegin', `
-    <div class="response-block" id="${thinkId}">
-      <div class="response-thinking">
-        <span class="spinner"><span></span><span></span><span></span></span>
-        처리 중...
-      </div>
-    </div>`);
-
+  btn.textContent = '조회 중...';
   try {
-    const res = await fetch('/agent/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: q })
-    });
+    const res = await fetch(`/api/mcp/servers/${encodeURIComponent(currentApp.serverId)}/probe?method=tools%2Flist`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    document.getElementById(thinkId)?.remove();
-
-    const traceItems = (data.trace || []).map((t, i) =>
-      `<div class="trace-mini-item">${i + 1}. ${escHtml(t.toolName)} ← ${escHtml(t.server)}</div>`
-    ).join('');
-    const traceSection = traceItems ? `
-      <div class="trace-mini">
-        <div class="trace-mini-title">Tool Calls (${data.trace.length})</div>
-        ${traceItems}
-      </div>` : '';
-
-    out.insertAdjacentHTML('afterbegin', `
-      <div class="response-block">
-        <div class="response-answer">${escHtml(data.answer || '')}</div>
-        ${traceSection}
-      </div>`);
-  } catch (e) {
-    document.getElementById(thinkId)?.remove();
-    out.insertAdjacentHTML('afterbegin', `
-      <div class="response-block" style="border-color:rgba(220,38,38,.25)">
-        <div class="response-answer" style="color:var(--red)">${escHtml(e.message)}</div>
-      </div>`);
+    const tools = data.tools || data.result?.tools || [];
+    if (!tools.length) { area.innerHTML = '<div style="color:var(--muted);font-size:12px">tool 없음 (live)</div>'; return; }
+    area.innerHTML = tools.map(t => `
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <div class="tool-card-name">${escHtml(t.name)}</div>
+          <span style="font-size:10px;color:var(--green);border:1px solid rgba(22,163,74,.25);border-radius:4px;padding:1px 6px;background:var(--green-d)">live</span>
+        </div>
+        <div class="tool-card-desc">${escHtml(t.description || '')}</div>
+      </div>`).join('');
+  } catch(e) {
+    area.innerHTML = `<div style="color:var(--red);font-size:12px">${escHtml(e.message)}</div>`;
   } finally {
     btn.disabled = false;
-    btn.textContent = '실행';
+    btn.textContent = '↻ 실시간 조회';
   }
 }
 

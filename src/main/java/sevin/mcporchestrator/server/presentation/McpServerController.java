@@ -119,7 +119,7 @@ public class McpServerController {
         return m;
     }
 
-    /** 특정 서버에 tools/list 또는 resources/list 를 실시간으로 호출해 결과 반환 */
+    /** 특정 서버에 tools/list · resources/list · ping 을 실시간으로 호출해 결과 반환 */
     @GetMapping("/{serverId}/probe")
     public ResponseEntity<JsonNode> probe(
             @PathVariable String serverId,
@@ -128,16 +128,28 @@ public class McpServerController {
         McpServerRecord server = registry.find(serverId)
             .orElseThrow(ServerNotFoundException::new);
 
-        Map<String, Object> req = Map.of(
-            "jsonrpc", "2.0", "id", 1, "method", method, "params", Map.of()
-        );
-
-        String body = restClient.post()
-            .uri(server.getUrl() + "/mcp")
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(objectMapper.writeValueAsString(req))
-            .retrieve()
-            .body(String.class);
+        String body;
+        if (server.getType() == sevin.mcporchestrator.server.domain.ServerType.WEBAPP) {
+            String path = switch (method) {
+                case "tools/list"     -> "/tools/list";
+                case "resources/list" -> "/resources/list";
+                default               -> "/" + method;
+            };
+            body = restClient.get()
+                .uri(server.getUrl() + path)
+                .retrieve()
+                .body(String.class);
+        } else {
+            Map<String, Object> req = Map.of(
+                "jsonrpc", "2.0", "id", 1, "method", method, "params", Map.of()
+            );
+            body = restClient.post()
+                .uri(server.getUrl() + "/mcp")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(objectMapper.writeValueAsString(req))
+                .retrieve()
+                .body(String.class);
+        }
 
         return ResponseEntity.ok(objectMapper.readTree(body));
     }

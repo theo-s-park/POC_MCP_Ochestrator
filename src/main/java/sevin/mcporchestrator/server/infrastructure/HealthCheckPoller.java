@@ -69,7 +69,7 @@ public class HealthCheckPoller {
             .retrieve()
             .body(String.class);
         tools.jackson.databind.JsonNode root = objectMapper.readTree(body);
-        if (root == null || root.path("result").isMissingNode())
+        if (root == null || (!root.has("result") && !root.has("error")))
             throw new RuntimeException("invalid MCP ping response: " + body);
     }
 

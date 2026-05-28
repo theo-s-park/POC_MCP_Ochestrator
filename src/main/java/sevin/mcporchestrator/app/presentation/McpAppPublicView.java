@@ -10,6 +10,7 @@ import java.util.Map;
 
 public record McpAppPublicView(
     String id,
+    String serverId,
     String displayName,
     String description,
     String thumbnail,
@@ -50,6 +51,7 @@ public record McpAppPublicView(
 
         return new McpAppPublicView(
             app.getId(),
+            app.getMcpServerId(),
             displayName,
             app.getDescription(),
             app.getThumbnail(),

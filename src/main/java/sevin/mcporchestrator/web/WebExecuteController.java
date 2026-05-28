@@ -121,15 +121,4 @@ public class WebExecuteController {
         return new WebExecuteResponse(req.appId(), req.toolName(), result, app.getCredit());
     }
 
-    /**
-     * 개발용 stub 엔드포인트 — OAuth 서버가 준비되기 전까지 임시 authorToken 발급.
-     * 실제 OAuth 서버 연동 후 제거.
-     */
-    @PostMapping("/api/auth/stub/author-token")
-    public Map<String, String> stubAuthorToken(@RequestBody(required = false) Map<String, String> body) {
-        String userId = body != null ? body.getOrDefault("userId", "anonymous") : "anonymous";
-        String authorToken = "author." + UUID.randomUUID().toString().substring(0, 8) + "." + userId;
-        log.warn("[Auth][STUB] authorToken 발급 userId={} — OAuth 서버 연동 후 이 엔드포인트를 제거하세요", userId);
-        return Map.of("authorToken", authorToken);
-    }
 }

@@ -15,7 +15,7 @@
   --blue:#2563eb; --blue-d:rgba(37,99,235,0.10);
   --amber:#d97706; --red:#dc2626;
   --green:#16a34a; --green-d:rgba(22,163,74,0.10);
-  --sidebar-w:228px; --radius:10px;
+  --sidebar-w:252px; --radius:10px;
   --font-head:'Syne',sans-serif; --font-body:'DM Sans',sans-serif; --font-mono:'JetBrains Mono',monospace;
 }
 body { background:var(--bg); color:var(--text); font-family:var(--font-body); font-size:14px; display:flex; min-height:100vh; }
@@ -97,6 +97,27 @@ body::before {
 .empty-state { padding:60px 20px; text-align:center; color:var(--muted); border:1px dashed var(--border); border-radius:var(--radius); background:var(--surface); }
 .empty-title { font-family:var(--font-head); font-size:16px; color:var(--text); opacity:.4; margin-bottom:6px; }
 
+/* Probe Modal */
+.probe-overlay { position:fixed; inset:0; background:rgba(0,0,0,.35); backdrop-filter:blur(2px); z-index:300; display:none; align-items:center; justify-content:center; }
+.probe-overlay.open { display:flex; }
+.probe-panel { background:var(--surface); border:1px solid var(--border); border-radius:14px; width:680px; max-width:94vw; max-height:82vh; display:flex; flex-direction:column; box-shadow:0 16px 48px rgba(0,0,0,0.18); }
+.probe-panel-head { padding:18px 20px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+.probe-panel-title { font-family:var(--font-head); font-size:15px; font-weight:700; flex:1; }
+.probe-tabs { display:flex; gap:4px; }
+.probe-tab { padding:5px 12px; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; border:1px solid var(--border); background:var(--surface2); color:var(--muted); transition:all .15s; }
+.probe-tab.active { background:var(--accent-d); color:var(--accent); border-color:rgba(79,70,229,.25); }
+.probe-close { width:28px; height:28px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.probe-close:hover { border-color:var(--border-hi); color:var(--text); background:var(--surface2); }
+.probe-body { flex:1; overflow-y:auto; padding:16px 20px; }
+.probe-item { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin-bottom:8px; }
+.probe-item-name { font-family:var(--font-mono); font-size:12px; color:var(--accent); margin-bottom:3px; }
+.probe-item-desc { font-size:12px; color:var(--muted); line-height:1.5; }
+.probe-raw { font-family:var(--font-mono); font-size:11px; line-height:1.7; white-space:pre-wrap; word-break:break-all; color:var(--text); }
+.probe-empty { padding:32px; text-align:center; color:var(--muted); font-size:13px; }
+.probe-loading { padding:32px; text-align:center; color:var(--muted); font-size:12px; font-style:italic; }
+.btn-probe { font-size:11px; padding:4px 10px; border-radius:5px; background:var(--blue-d); color:var(--blue); border:1px solid rgba(37,99,235,.2); cursor:pointer; font-family:var(--font-body); font-weight:500; transition:all .15s; }
+.btn-probe:hover { background:rgba(37,99,235,.18); }
+
 /* Toast Stack */
 #toastStack { position:fixed; bottom:24px; right:24px; display:flex; flex-direction:column-reverse; gap:8px; z-index:9999; pointer-events:none; }
 .t { display:flex; align-items:flex-start; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px 10px; font-size:13px; min-width:240px; max-width:340px; box-shadow:0 8px 24px rgba(0,0,0,0.10),0 2px 8px rgba(0,0,0,0.06); transform:translateX(calc(100% + 40px)); opacity:0; transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s; pointer-events:all; overflow:hidden; position:relative; }
@@ -117,26 +138,14 @@ body::before {
 </head>
 <body>
 <aside class="sidebar">
-  <div class="sidebar-logo">MCP<span>Hub</span></div>
+  <div class="sidebar-logo">MCP <span>통합 관리 서버</span></div>
   <div class="sidebar-divider"></div>
   <nav class="nav-section">
-    <a href="/" class="nav-item">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Servers
-    </a>
-    <a href="/tools" class="nav-item">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Tools
-    </a>
-    <a href="/demo" class="nav-item">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Agent Demo
-    </a>
-    <a href="/agent" class="nav-item">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 7v2M12 11h.01"/></svg>Agent Chat
-    </a>
-    <a href="/web" class="nav-item">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>Marketplace
-    </a>
     <a href="/backoffice" class="nav-item active">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Backoffice
+    </a>
+    <a href="/web" class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>WebUI (임시)
     </a>
   </nav>
 </aside>
@@ -167,6 +176,24 @@ body::before {
   </div>
   <div id="content"></div>
 </main>
+
+<!-- Probe Modal -->
+<div class="probe-overlay" id="probeOverlay" onclick="closeProbeModal()">
+  <div class="probe-panel" onclick="event.stopPropagation()">
+    <div class="probe-panel-head">
+      <div class="probe-panel-title" id="probePanelTitle">Probe</div>
+      <div class="probe-tabs">
+        <button class="probe-tab active" id="tab-tools" onclick="switchProbeTab('tools/list')">tools/list</button>
+        <button class="probe-tab" id="tab-resources" onclick="switchProbeTab('resources/list')">resources/list</button>
+        <button class="probe-tab" id="tab-ping" onclick="switchProbeTab('ping')">ping</button>
+      </div>
+      <button class="probe-close" onclick="closeProbeModal()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="probe-body" id="probeBody"><div class="probe-loading">로딩 중...</div></div>
+  </div>
+</div>
 
 <script>
 let serviceTypes = [];
@@ -247,6 +274,7 @@ function renderApp(app) {
         <div class="server-name">${app.serverName}</div>
         <div class="server-url">${app.serverUrl} <button class="copy-btn" onclick="copyUrl('${app.serverUrl}')">복사</button></div>
       </div>
+      <button class="btn-probe" onclick="openProbeModal('${app.mcpServerId}','${app.serverName}')">Probe</button>
       <span class="visible-badge ${visibleClass}">${visibleText}</span>
     </div>
     ${statusBanner}
@@ -375,6 +403,67 @@ async function registerServer() {
 
 function copyUrl(url) {
   navigator.clipboard.writeText(url).then(() => toast('복사 완료', url, 'ok'));
+}
+
+let _probeServerId = null;
+let _probeMethod = 'tools/list';
+
+function openProbeModal(serverId, serverName) {
+  _probeServerId = serverId;
+  _probeMethod = 'tools/list';
+  document.getElementById('probePanelTitle').textContent = 'Probe — ' + serverName;
+  document.querySelectorAll('.probe-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-tools').classList.add('active');
+  document.getElementById('probeOverlay').classList.add('open');
+  runProbe('tools/list');
+}
+
+function closeProbeModal() {
+  document.getElementById('probeOverlay').classList.remove('open');
+}
+
+async function switchProbeTab(method) {
+  _probeMethod = method;
+  document.querySelectorAll('.probe-tab').forEach(t => t.classList.remove('active'));
+  const tabId = { 'tools/list': 'tab-tools', 'resources/list': 'tab-resources', 'ping': 'tab-ping' }[method];
+  if (tabId) document.getElementById(tabId).classList.add('active');
+  await runProbe(method);
+}
+
+async function runProbe(method) {
+  const body = document.getElementById('probeBody');
+  body.innerHTML = '<div class="probe-loading">요청 중...</div>';
+  try {
+    const res = await fetch(`/api/mcp/servers/${_probeServerId}/probe?method=${encodeURIComponent(method)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    if (method === 'tools/list') {
+      const tools = data.tools || data.result?.tools || [];
+      if (!tools.length) { body.innerHTML = '<div class="probe-empty">tools 없음</div>'; return; }
+      body.innerHTML = tools.map(t => `
+        <div class="probe-item">
+          <div class="probe-item-name">${escProbe(t.name)}</div>
+          <div class="probe-item-desc">${escProbe(t.description || '—')}</div>
+        </div>`).join('');
+    } else if (method === 'resources/list') {
+      const resources = data.resources || data.result?.resources || [];
+      if (!resources.length) { body.innerHTML = '<div class="probe-empty">resources 없음</div>'; return; }
+      body.innerHTML = resources.map(r => `
+        <div class="probe-item">
+          <div class="probe-item-name">${escProbe(r.uri || r.name)}</div>
+          <div class="probe-item-desc">${escProbe(r.description || r.mimeType || '—')}</div>
+        </div>`).join('');
+    } else {
+      body.innerHTML = `<pre class="probe-raw">${escProbe(JSON.stringify(data, null, 2))}</pre>`;
+    }
+  } catch(e) {
+    body.innerHTML = `<div class="probe-empty" style="color:var(--red)">${escProbe(e.message)}</div>`;
+  }
+}
+
+function escProbe(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 load();
