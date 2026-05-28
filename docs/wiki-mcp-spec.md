@@ -1,9 +1,20 @@
 # MCP 서버 구현 및 등록 가이드
 
-이 문서는 **MCP 관리 서버에 등록하려는 서버 개발자**를 대상으로 한다.  
-등록을 위해 구현해야 할 엔드포인트와 데이터 포맷을 정의한다.
+이 문서는 **MCP 관리 서버에 연결될 서버를 개발하는 개발자**를 대상으로 한다.  
+구현해야 할 엔드포인트와 데이터 포맷을 정의한다.
 
 > **확정된 내용만 기술한다.** 인증 연동 방식은 별도 확정 예정이며 이 문서에 포함하지 않는다.
+
+---
+
+## 역할 분리
+
+| 역할 | 담당 | 내용 |
+|---|---|---|
+| 서버 인프라 등록 (Lambda 생성 · URL 발급 등) | 운영팀 gray님 문의 | AWS Lambda 함수 생성, API Gateway 연결 등 인프라 작업 |
+| 서버 구현 (엔드포인트 코드) | 이 문서 참고 | MCP 관리 서버가 호출할 HTTP 엔드포인트 구현 |
+
+Lambda 함수가 생성되고 외부에서 접근 가능한 Base URL이 확보되면, 아래 스펙대로 엔드포인트를 구현하고 Backoffice에 등록한다.
 
 ---
 
@@ -13,10 +24,11 @@
 
 | type | 통신 방식 | 사용 대상 |
 |---|---|---|
-| `MCP` | JSON-RPC 2.0, 단일 엔드포인트 `POST /mcp` | MCP 표준을 따르는 서버 |
-| `WEBAPP` | REST HTTP, 엔드포인트가 메서드 역할 | 일반 웹 서버 |
+| `MCP` | JSON-RPC 2.0, 단일 엔드포인트 `POST /mcp` | **신규 개발 서버 (Lambda 포함)** — 권장 |
+| `WEBAPP` | REST HTTP, 엔드포인트가 메서드 역할 | 기존 REST 서버를 수정 없이 붙일 때 |
 
-두 타입 모두 **데이터 구조는 동일**하다. MCP는 JSON-RPC 래퍼가 있고 WEBAPP은 없는 차이뿐이다.
+**새로 만드는 Lambda 함수는 MCP 타입을 사용한다.**  
+`POST /mcp` 하나만 구현하면 되며, JSON-RPC 라우팅만 추가하면 기존 비즈니스 로직을 그대로 유지할 수 있다.
 
 ---
 
@@ -139,6 +151,68 @@ MCP 관리 서버는 20초마다 `ping` 메서드를 호출해 서버 생존 여
     ]
   }
 }
+```
+
+### Lambda 구현 예시 (Python)
+
+```python
+import json
+
+TOOLS = [
+    {
+        "name": "my_tool",
+        "description": "도구 설명",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "input": {"type": "string", "description": "입력값"}
+            },
+            "required": ["input"]
+        }
+    }
+]
+
+def handler(event, context):
+    body = json.loads(event.get("body", "{}"))
+    method = body.get("method")
+    req_id = body.get("id", 1)
+
+    if method == "tools/list":
+        return ok(req_id, {"tools": TOOLS})
+
+    if method == "tools/call":
+        args = body["params"]["arguments"].copy()
+        credit = args.pop("credit", None)          # credit은 비즈니스 로직에 전달하지 않음
+
+        result_text = execute(body["params"]["name"], args)
+
+        if credit:
+            deduct_credit(credit, event["headers"].get("Authorization"))
+
+        return ok(req_id, {"content": [{"type": "text", "text": result_text}]})
+
+    # ping 포함 미구현 메서드 — 이 응답이면 헬스체크 통과
+    return ok(req_id, None, error={"code": -32601, "message": "Method not found"})
+
+
+def ok(req_id, result, error=None):
+    body = {"jsonrpc": "2.0", "id": req_id}
+    if error:
+        body["error"] = error
+    else:
+        body["result"] = result
+    return {"statusCode": 200, "body": json.dumps(body)}
+
+
+def execute(tool_name, args):
+    # 비즈니스 로직
+    ...
+
+
+def deduct_credit(credit, authorization):
+    # POST /credits/deduct → 크레딧 서버
+    # Authorization 헤더를 그대로 전달해 사용자 식별
+    ...
 ```
 
 ---
