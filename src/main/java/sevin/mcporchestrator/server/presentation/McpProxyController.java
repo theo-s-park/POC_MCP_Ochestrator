@@ -11,7 +11,6 @@ import org.springframework.web.client.RestClient;
 import sevin.mcporchestrator.server.application.McpServerRecord;
 import sevin.mcporchestrator.server.domain.McpTool;
 import sevin.mcporchestrator.server.domain.ServerStatus;
-import sevin.mcporchestrator.server.domain.ServerType;
 import sevin.mcporchestrator.server.infrastructure.McpServerRegistry;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -103,31 +102,19 @@ public class McpProxyController {
 
         McpServerRecord server = serverOpt.get();
         try {
-            String responseBody;
-            if (server.getType() == ServerType.WEBAPP) {
-                Map<String, Object> req = Map.of("name", toolName, "arguments", arguments);
-                responseBody = restClient.post()
-                    .uri(server.getUrl() + "/tools/call")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(objectMapper.writeValueAsString(req))
-                    .retrieve()
-                    .body(String.class);
-                return ok(id, objectMapper.readTree(responseBody));
-            } else {
-                Map<String, Object> req = Map.of(
-                    "jsonrpc", "2.0",
-                    "id", id,
-                    "method", "tools/call",
-                    "params", Map.of("name", toolName, "arguments", arguments)
-                );
-                responseBody = restClient.post()
-                    .uri(server.getUrl() + "/mcp")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(objectMapper.writeValueAsString(req))
-                    .retrieve()
-                    .body(String.class);
-                return objectMapper.readTree(responseBody);
-            }
+            Map<String, Object> req = Map.of(
+                "jsonrpc", "2.0",
+                "id", id,
+                "method", "tools/call",
+                "params", Map.of("name", toolName, "arguments", arguments)
+            );
+            String responseBody = restClient.post()
+                .uri(server.getUrl() + "/mcp")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(objectMapper.writeValueAsString(req))
+                .retrieve()
+                .body(String.class);
+            return objectMapper.readTree(responseBody);
         } catch (Exception e) {
             log.error("[McpProxy] tools/call proxy failed - server {}, tool {}: {}", server.getServerId(), toolName, e.getMessage());
             return error(id, -32603, "Upstream error: " + e.getMessage());

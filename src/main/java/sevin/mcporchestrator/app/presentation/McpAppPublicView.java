@@ -24,7 +24,8 @@ public record McpAppPublicView(
         String description,
         JsonNode inputSchema,
         String serviceType,
-        int deductCredit
+        int deductCredit,
+        String webUrl
     ) {}
 
     public static McpAppPublicView of(McpAppEntity app, McpServerRecord server,
@@ -45,7 +46,8 @@ public record McpAppPublicView(
                         t.getDescription(),
                         t.getInputSchema(),
                         info != null ? info.serviceType() : null,
-                        info != null ? info.deductCredit() : 0
+                        info != null ? info.deductCredit() : 0,
+                        t.getWebUrl()
                     );
                 }).toList();
 

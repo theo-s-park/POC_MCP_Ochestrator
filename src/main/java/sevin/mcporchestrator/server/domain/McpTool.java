@@ -8,4 +8,5 @@ public class McpTool {
     private String name;
     private String description;
     private JsonNode inputSchema;
+    private String webUrl;
 }

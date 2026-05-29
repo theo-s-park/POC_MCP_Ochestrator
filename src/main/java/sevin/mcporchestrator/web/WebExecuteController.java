@@ -14,7 +14,6 @@ import sevin.mcporchestrator.app.infrastructure.McpAppRepository;
 import sevin.mcporchestrator.auth.OAuthClient;
 import sevin.mcporchestrator.oss.OssAiServiceRepository;
 import sevin.mcporchestrator.server.application.McpServerRecord;
-import sevin.mcporchestrator.server.domain.ServerType;
 import sevin.mcporchestrator.server.exception.ServerNotFoundException;
 import sevin.mcporchestrator.server.infrastructure.McpServerRegistry;
 import tools.jackson.databind.JsonNode;
@@ -83,40 +82,23 @@ public class WebExecuteController {
             log.info("[WebExecute] serviceType={} credit merged into arguments", req.serviceType());
         }
 
-        // 4. MCP 서버 tools/call (Bearer 토큰 포함) — ServerType에 따라 통신 방식 분기
-        String responseBody;
-        JsonNode result;
-
-        if (server.getType() == ServerType.WEBAPP) {
-            Map<String, Object> webReq = new HashMap<>();
-            webReq.put("name", req.toolName());
-            webReq.put("arguments", arguments);
-            responseBody = restClient.post()
-                    .uri(server.getUrl() + "/tools/call")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .headers(h -> h.setBearerAuth(accessToken))
-                    .body(objectMapper.writeValueAsString(webReq))
-                    .retrieve()
-                    .body(String.class);
-            result = objectMapper.readTree(responseBody);
-        } else {
-            Map<String, Object> params = new HashMap<>();
-            params.put("name", req.toolName());
-            params.put("arguments", arguments);
-            Map<String, Object> mcpReq = new HashMap<>();
-            mcpReq.put("jsonrpc", "2.0");
-            mcpReq.put("id", 1);
-            mcpReq.put("method", "tools/call");
-            mcpReq.put("params", params);
-            responseBody = restClient.post()
-                    .uri(server.getUrl() + "/mcp")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .headers(h -> h.setBearerAuth(accessToken))
-                    .body(objectMapper.writeValueAsString(mcpReq))
-                    .retrieve()
-                    .body(String.class);
-            result = objectMapper.readTree(responseBody).path("result");
-        }
+        // 4. MCP 서버 tools/call (Bearer 토큰 포함)
+        Map<String, Object> params = new HashMap<>();
+        params.put("name", req.toolName());
+        params.put("arguments", arguments);
+        Map<String, Object> mcpReq = new HashMap<>();
+        mcpReq.put("jsonrpc", "2.0");
+        mcpReq.put("id", 1);
+        mcpReq.put("method", "tools/call");
+        mcpReq.put("params", params);
+        String responseBody = restClient.post()
+                .uri(server.getUrl() + "/mcp")
+                .contentType(MediaType.APPLICATION_JSON)
+                .headers(h -> h.setBearerAuth(accessToken))
+                .body(objectMapper.writeValueAsString(mcpReq))
+                .retrieve()
+                .body(String.class);
+        JsonNode result = objectMapper.readTree(responseBody).path("result");
 
         return new WebExecuteResponse(req.appId(), req.toolName(), result, app.getCredit());
     }

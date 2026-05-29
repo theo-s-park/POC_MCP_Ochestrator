@@ -74,6 +74,7 @@ public class ToolsListCollector implements McpCapabilityCollector {
                 tool.setName(toolNode.path("name").asText());
                 tool.setDescription(toolNode.path("description").asText());
                 tool.setInputSchema(toolNode.path("inputSchema"));
+                tool.setWebUrl(toolNode.path("webUrl").asText(null));
                 tools.add(tool);
             }
 

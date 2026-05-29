@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import sevin.mcporchestrator.server.application.McpServerRecord;
 import sevin.mcporchestrator.server.domain.ServerStatus;
-import sevin.mcporchestrator.server.domain.ServerType;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
@@ -36,11 +35,7 @@ public class HealthCheckPoller {
 
     private void checkHealth(McpServerRecord server) {
         try {
-            if (server.getType() == ServerType.MCP) {
-                pingMcp(server);
-            } else {
-                pingHttp(server);
-            }
+            pingMcp(server);
             registry.resetHealthCheckFailure(server.getServerId());
             registry.updateStatus(server.getServerId(), ServerStatus.ACTIVE);
             log.info("[HealthCheck] active: {} ({})", server.getName(), server.getType());
@@ -73,10 +68,4 @@ public class HealthCheckPoller {
             throw new RuntimeException("invalid MCP ping response: " + body);
     }
 
-    private void pingHttp(McpServerRecord server) {
-        restClient.get()
-            .uri(server.getUrl())
-            .retrieve()
-            .toBodilessEntity();
-    }
 }
