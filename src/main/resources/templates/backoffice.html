@@ -5,6 +5,7 @@
 <title>Backoffice — MCP Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -80,7 +81,11 @@ body::before {
 .credit-display { font-size:12px; color:var(--muted); margin-top:4px; font-family:var(--font-mono); }
 .tools-section { padding:0 20px 16px; }
 .tools-section-title { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
-.tool-row { display:grid; grid-template-columns:1fr 180px auto; align-items:center; gap:10px; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; margin-bottom:6px; }
+.tool-row { display:grid; grid-template-columns:1fr 200px auto; align-items:center; gap:10px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; margin-bottom:6px; transition:border-color .15s; }
+.tool-row:hover { border-color:var(--border-hi); }
+.tool-row select { appearance:none; background:var(--surface2); background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; border:1px solid var(--border); border-radius:6px; padding:7px 28px 7px 10px; color:var(--text); font-family:var(--font-body); font-size:12px; outline:none; cursor:pointer; transition:all .15s; width:100%; }
+.tool-row select:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-d); }
+.tool-row select:not([value=""]):valid { border-color:var(--green); background-color:var(--green-d); }
 .tool-name { font-family:var(--font-mono); font-size:12px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .tool-credit-info { font-size:11px; color:var(--muted); font-family:var(--font-mono); margin-top:2px; }
 .field textarea { resize:vertical; min-height:72px; }
@@ -175,11 +180,63 @@ body::before {
         <label>이름 (선택)</label>
         <input type="text" id="reg-name" placeholder="자동 추출">
       </div>
-      <button class="btn btn-primary" id="reg-btn" onclick="registerServer()">등록</button>
+        <button class="btn btn-primary" id="reg-btn" onclick="registerServer()">등록</button>
+      <button class="btn btn-ghost" onclick="openArchModal()" style="white-space:nowrap">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>아키텍처
+      </button>
     </div>
   </div>
   <div id="content"></div>
 </main>
+
+<!-- Architecture Modal -->
+<div class="probe-overlay" id="archOverlay" onclick="closeArchModal()">
+  <div class="probe-panel" style="width:720px;max-height:88vh" onclick="event.stopPropagation()">
+    <div class="probe-panel-head">
+      <div class="probe-panel-title">핸드셰이킹 & 아키텍처</div>
+      <button class="probe-close" onclick="closeArchModal()">✕</button>
+    </div>
+    <div class="probe-body" style="padding:24px 28px;overflow-y:auto;background:var(--surface2)">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">등록 & 핸드셰이킹</div>
+      <div class="mermaid" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
+%%{init: {"theme": "base", "themeVariables": {"actorBkg": "#ede9fe", "actorBorder": "#7c3aed", "actorTextColor": "#1e1b4b", "actorLineColor": "#c4b5fd", "signalColor": "#6d28d9", "signalTextColor": "#4c1d95", "noteBkgColor": "#fef9c3", "noteTextColor": "#92400e", "noteBorderColor": "#d97706", "activationBkgColor": "#dbeafe", "activationBorderColor": "#2563eb", "loopTextColor": "#1e3a8a", "labelBoxBkgColor": "#dbeafe", "labelBoxBorderColor": "#2563eb", "labelTextColor": "#1e3a8a"}}}%%
+sequenceDiagram
+    participant BO as 운영자 (Backoffice)
+    participant MGR as MCP 관리 서버
+    participant MCP as MCP 서버 (Lambda)
+
+    BO->>MGR: POST /api/mcp/servers/register
+    Note right of MGR: PENDING
+    MGR->>MCP: POST /mcp — ping
+    MCP-->>MGR: { "result": {} }
+    MGR->>MCP: POST /mcp — tools/list
+    MCP-->>MGR: { "tools": [ ... ] }
+    MGR->>MCP: POST /mcp — resources/list
+    MCP-->>MGR: { "resources": [ ... ] }
+    Note right of MGR: McpServer ACTIVE<br/>McpApp 자동 생성
+    MGR-->>BO: { "status": "ACTIVE" }
+    loop 20초마다
+        MGR->>MCP: POST /mcp — ping
+        MCP-->>MGR: { "result": {} }
+    end
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin:20px 0 12px">WEB 사용자 흐름</div>
+      <div class="mermaid" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
+%%{init: {"theme": "base", "themeVariables": {"actorBkg": "#dbeafe", "actorBorder": "#2563eb", "actorTextColor": "#1e3a8a", "actorLineColor": "#93c5fd", "signalColor": "#1d4ed8", "signalTextColor": "#1e3a8a", "noteBkgColor": "#dcfce7", "noteTextColor": "#14532d", "noteBorderColor": "#16a34a", "activationBkgColor": "#ede9fe", "activationBorderColor": "#7c3aed"}}}%%
+sequenceDiagram
+    participant WEB as WEB FE
+    participant MGR as MCP 관리 서버
+    participant SVC as 서비스 페이지
+
+    WEB->>MGR: GET /api/mcp/apps/public
+    MGR-->>WEB: 앱 목록 + tools<br/>(Backoffice Wrapper + MCP 수집값)
+    Note over WEB: 툴 선택
+    WEB->>SVC: webUrl 로 리다이렉트
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Probe Modal -->
 <div class="probe-overlay" id="probeOverlay" onclick="closeProbeModal()">
@@ -247,6 +304,19 @@ function renderToolRows(appId, tools) {
     </div>`).join('');
 }
 
+function onVisibleChange(e, appId, tools) {
+  if (!e.target.checked) return;
+  const unset = (tools || []).filter(t => {
+    const sel = document.getElementById(`${appId}-${t.toolName}-st`);
+    return sel && !sel.value;
+  });
+  if (unset.length) {
+    e.target.checked = false;
+    const names = unset.map(t => t.toolName).join(', ');
+    toast('Visible 설정 불가', `serviceType 미설정 툴: ${names}`, 'err', 4000);
+  }
+}
+
 function onToolServiceTypeChange(appId, toolName) {
   const sel = document.getElementById(`${appId}-${toolName}-st`);
   const opt = sel.selectedOptions[0];
@@ -254,6 +324,8 @@ function onToolServiceTypeChange(appId, toolName) {
   const st = sel.value;
   const info = document.getElementById(`${appId}-${toolName}-creditInfo`);
   if (info) info.textContent = st ? `${st} · ${credit}cr` : '— not set —';
+  sel.style.borderColor = st ? 'var(--green)' : '';
+  sel.style.background = st ? 'var(--green-d)' : '';
 }
 
 function renderApp(app) {
@@ -272,17 +344,19 @@ function renderApp(app) {
 
   return `
   <div class="app-card">
-    <div class="app-card-header">
+    <div class="app-card-header" onclick="toggleCard('${app.id}')" style="cursor:pointer">
       <div class="status-dot ${st}"></div>
       <div>
         <div class="server-name">${app.serverName}</div>
-        <div class="server-url">${app.serverUrl} <button class="copy-btn" onclick="copyUrl('${app.serverUrl}')">복사</button></div>
+        <div class="server-url">${app.serverUrl} <button class="copy-btn" onclick="event.stopPropagation();copyUrl('${app.serverUrl}')">복사</button></div>
       </div>
       <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-        <button class="btn-probe" onclick="openProbeModal('${app.mcpServerId}','${app.serverName}')">Probe</button>
+        <button class="btn-probe" onclick="event.stopPropagation();openProbeModal('${app.mcpServerId}','${app.serverName}')">Probe</button>
         <span class="visible-badge ${visibleClass}">${visibleText}</span>
+        <svg id="chevron-${app.id}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted);transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
     </div>
+    <div id="body-${app.id}" style="display:none">
     ${statusBanner}
     <div class="app-form" id="form-${app.id}">
       <div class="field">
@@ -305,7 +379,7 @@ function renderApp(app) {
         <label>Visible</label>
         <div class="toggle-row">
           <label class="toggle">
-            <input type="checkbox" id="${app.id}-isVisible" ${app.isVisible ? 'checked' : ''} ${!isActive ? 'disabled' : ''}>
+            <input type="checkbox" id="${app.id}-isVisible" ${app.isVisible ? 'checked' : ''} ${!isActive ? 'disabled' : ''} onchange="onVisibleChange(event,'${app.id}',${JSON.stringify(app.tools||[]).replace(/"/g,'&quot;')})">
             <span class="toggle-slider"></span>
           </label>
           <span style="font-size:12px;color:var(--muted)">${!isActive ? '서버 ACTIVE 상태에서만 노출 가능' : '앱 전체 노출'}</span>
@@ -325,6 +399,7 @@ function renderApp(app) {
       <button class="btn btn-danger" onclick="deleteServer('${app.mcpServerId}','${app.serverName}')">삭제</button>
       <button class="btn btn-ghost" onclick="refreshServer('${app.mcpServerId}','${app.serverName}')">새로고침</button>
       <button class="btn btn-accent" onclick="save('${app.id}', ${JSON.stringify(app.tools || []).replace(/"/g, '&quot;')})">저장</button>
+    </div>
     </div>
   </div>`;
 }
@@ -365,6 +440,58 @@ async function save(id, tools) {
   } catch(e) {
     toast('저장 실패', e.message, 'err');
   }
+}
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: 'DM Sans, sans-serif',
+  sequence: { useMaxWidth: true, boxTextMargin: 8 },
+  themeVariables: {
+    actorBkg: '#ede9fe',
+    actorBorder: '#7c3aed',
+    actorTextColor: '#1e1b4b',
+    actorLineColor: '#c4b5fd',
+    signalColor: '#6d28d9',
+    signalTextColor: '#4c1d95',
+    noteBkgColor: '#fef9c3',
+    noteTextColor: '#713f12',
+    noteBorderColor: '#ca8a04',
+    activationBkgColor: '#dbeafe',
+    activationBorderColor: '#2563eb',
+    loopTextColor: '#1e3a8a',
+    labelBoxBkgColor: '#dbeafe',
+    labelBoxBorderColor: '#2563eb',
+    labelTextColor: '#1e3a8a',
+  }
+});
+
+function openArchModal() {
+  const overlay = document.getElementById('archOverlay');
+  overlay.classList.add('open');
+  const nodes = overlay.querySelectorAll('.mermaid');
+  nodes.forEach(el => {
+    if (!el.getAttribute('data-src')) el.setAttribute('data-src', el.textContent);
+    el.removeAttribute('data-processed');
+    el.innerHTML = el.getAttribute('data-src');
+  });
+  mermaid.run({ nodes });
+}
+
+function toggleCard(appId) {
+  const body = document.getElementById('body-' + appId);
+  const chevron = document.getElementById('chevron-' + appId);
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  if (chevron) chevron.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+function closeArchModal() {
+  document.getElementById('archOverlay').classList.remove('open');
+  document.querySelectorAll('#archOverlay .mermaid').forEach(el => {
+    el.removeAttribute('data-processed');
+    el.innerHTML = el.getAttribute('data-src') || el.innerHTML;
+  });
 }
 
 function toast(title, sub, type = 'ok', dur = 3000) {

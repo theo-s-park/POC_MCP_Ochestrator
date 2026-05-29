@@ -133,6 +133,32 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radia
 .spinner span:nth-child(2){animation-delay:.2s}
 .spinner span:nth-child(3){animation-delay:.4s}
 @keyframes bounce{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+/* JSON Viewer */
+.json-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-top:28px;overflow:hidden;display:none}
+.json-panel.open{display:block}
+.json-panel-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface2)}
+.json-panel-title{font-family:var(--font-head);font-size:14px;font-weight:700;flex:1}
+.json-legend{display:flex;gap:14px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.legend-dot.bo{background:var(--accent)}
+.legend-dot.mcp{background:var(--blue)}
+.legend-dot.sys{background:var(--subtle)}
+.json-body{padding:16px 20px;overflow-x:auto;max-height:600px;overflow-y:auto}
+.json-pre{font-family:var(--font-mono);font-size:11.5px;line-height:1.8;white-space:pre}
+.j-key{color:var(--text)}
+.j-key.bo{color:var(--accent);font-weight:600}
+.j-key.mcp{color:var(--blue);font-weight:600}
+.j-key.sys{color:var(--subtle)}
+.j-str{color:#16a34a}
+.j-num{color:var(--amber)}
+.j-bool{color:var(--red)}
+.j-null{color:var(--muted)}
+.j-bracket,.j-punct{color:var(--muted)}
+.btn-json-toggle{background:none;border:1px solid var(--border);border-radius:7px;padding:7px 14px;font-size:12px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:var(--font-body);transition:all .15s}
+.btn-json-toggle:hover{border-color:var(--border-hi);color:var(--text)}
+.btn-json-toggle.active{background:var(--accent-d);color:var(--accent);border-color:rgba(79,70,229,.25)}
 </style>
 </head>
 <body>
@@ -156,11 +182,28 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:radia
       <h1 class="hero-title">MCP <span>WebUI</span></h1>
       <p class="hero-sub">등록된 MCP 앱을 탐색하고 Agent를 통해 바로 사용해보세요.</p>
     </div>
-    <button onclick="load()" style="margin-top:6px;background:none;border:1px solid var(--border);border-radius:7px;padding:7px 14px;font-size:12px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:var(--font-body)">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>Refresh
-    </button>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button onclick="load()" style="background:none;border:1px solid var(--border);border-radius:7px;padding:7px 14px;font-size:12px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:var(--font-body)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>Refresh
+      </button>
+      <button id="jsonToggleBtn" class="btn-json-toggle" onclick="toggleJsonPanel()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>API 응답 보기
+      </button>
+    </div>
   </div>
   <div class="app-grid" id="appGrid"></div>
+
+  <div class="json-panel" id="jsonPanel">
+    <div class="json-panel-head">
+      <div class="json-panel-title">GET /api/mcp/apps/public — 응답 구조</div>
+      <div class="json-legend">
+        <div class="legend-item"><div class="legend-dot bo"></div>Backoffice 설정값</div>
+        <div class="legend-item"><div class="legend-dot mcp"></div>MCP 서버 수집값 (핸드셰이킹)</div>
+        <div class="legend-item"><div class="legend-dot sys"></div>시스템 필드</div>
+      </div>
+    </div>
+    <div class="json-body"><pre class="json-pre" id="jsonPre">로딩 중...</pre></div>
+  </div>
 </main>
 
 <!-- Drawer -->
@@ -430,6 +473,73 @@ async function probeTools() {
 
 function escHtml(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── JSON Viewer ──────────────────────────────────────────────
+
+const BO_APP  = new Set(['displayName','description','thumbnail','isVisible','clientId','redirectUri']);
+const BO_TOOL = new Set(['serviceType','deductCredit','visible']);
+const MCP_TOOL = new Set(['name','description','inputSchema','webUrl','properties','required','type','default']);
+const SYS_APP  = new Set(['id','serverId','mcpUrl']);
+
+function keyClass(k, ctx) {
+  if (ctx === 'tool') {
+    if (MCP_TOOL.has(k)) return 'j-key mcp';
+    if (BO_TOOL.has(k))  return 'j-key bo';
+  } else {
+    if (BO_APP.has(k))  return 'j-key bo';
+    if (SYS_APP.has(k)) return 'j-key sys';
+  }
+  return 'j-key';
+}
+
+function renderJsonHtml(val, depth, ctx) {
+  const I  = '  '.repeat(depth);
+  const I1 = '  '.repeat(depth + 1);
+
+  if (Array.isArray(val)) {
+    if (!val.length) return '<span class="j-bracket">[]</span>';
+    const childCtx = ctx === 'tools' ? 'tool' : ctx;
+    const items = val.map(v => I1 + renderJsonHtml(v, depth + 1, childCtx));
+    return `<span class="j-bracket">[</span>\n${items.join('<span class="j-punct">,</span>\n')}\n${I}<span class="j-bracket">]</span>`;
+  }
+
+  if (val !== null && typeof val === 'object') {
+    const entries = Object.entries(val).map(([k, v]) => {
+      const cls   = keyClass(k, ctx);
+      const child = k === 'tools' ? 'tools' : ctx;
+      return `${I1}<span class="${cls}">"${escHtml(k)}"</span><span class="j-punct">: </span>${renderJsonHtml(v, depth + 1, child)}`;
+    });
+    return `<span class="j-bracket">{</span>\n${entries.join('<span class="j-punct">,</span>\n')}\n${I}<span class="j-bracket">}</span>`;
+  }
+
+  if (typeof val === 'string')  return `<span class="j-str">"${escHtml(val)}"</span>`;
+  if (typeof val === 'number')  return `<span class="j-num">${val}</span>`;
+  if (typeof val === 'boolean') return `<span class="j-bool">${val}</span>`;
+  if (val === null)              return `<span class="j-null">null</span>`;
+  return escHtml(String(val));
+}
+
+let jsonPanelOpen = false;
+
+async function toggleJsonPanel() {
+  const panel = document.getElementById('jsonPanel');
+  const btn   = document.getElementById('jsonToggleBtn');
+  jsonPanelOpen = !jsonPanelOpen;
+  panel.classList.toggle('open', jsonPanelOpen);
+  btn.classList.toggle('active', jsonPanelOpen);
+  if (jsonPanelOpen) await refreshJsonPanel();
+}
+
+async function refreshJsonPanel() {
+  const pre = document.getElementById('jsonPre');
+  try {
+    const res  = await fetch('/api/mcp/apps/public');
+    const data = await res.json();
+    pre.innerHTML = renderJsonHtml(data, 0, 'app');
+  } catch(e) {
+    pre.innerHTML = `<span style="color:var(--red)">${escHtml(e.message)}</span>`;
+  }
 }
 
 load();
