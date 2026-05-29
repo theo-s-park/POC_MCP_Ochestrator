@@ -62,6 +62,15 @@ public class McpServerController {
         return ResponseEntity.ok(Map.of("status", "ok"));
     }
 
+    @PostMapping("/{serverId}/refresh")
+    public ResponseEntity<Map<String, Object>> refresh(@PathVariable String serverId) {
+        McpServerRecord record = service.refresh(serverId);
+        return ResponseEntity.ok(Map.of(
+            "serverId", record.getServerId(),
+            "status", record.getStatus()
+        ));
+    }
+
     @GetMapping("/{serverId}")
     public ResponseEntity<Map<String, Object>> detail(@PathVariable String serverId) {
         McpServerRecord server = registry.find(serverId)

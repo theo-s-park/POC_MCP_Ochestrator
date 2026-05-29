@@ -98,6 +98,19 @@ public class McpServerService {
         return registry.find(serverId).orElse(record);
     }
 
+    public McpServerRecord refresh(String serverId) {
+        McpServerRecord record = registry.find(serverId)
+            .orElseThrow(() -> new ServerNotFoundException());
+
+        for (McpCapabilityCollector collector : collectors) {
+            if (!collector.supports(record.getType())) continue;
+            collector.collect(serverId, record.getUrl());
+        }
+
+        log.info("[Registry] refreshed: {} ({})", record.getName(), serverId);
+        return registry.find(serverId).orElse(record);
+    }
+
     @Transactional
     public void delete(String serverId) {
         if (!registry.delete(serverId)) {

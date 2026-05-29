@@ -117,6 +117,10 @@ body::before {
 .probe-loading { padding:32px; text-align:center; color:var(--muted); font-size:12px; font-style:italic; }
 .btn-probe { font-size:11px; padding:4px 10px; border-radius:5px; background:var(--blue-d); color:var(--blue); border:1px solid rgba(37,99,235,.2); cursor:pointer; font-family:var(--font-body); font-weight:500; transition:all .15s; }
 .btn-probe:hover { background:rgba(37,99,235,.18); }
+.btn-danger { background:rgba(220,38,38,0.08); color:var(--red); border:1px solid rgba(220,38,38,.2); }
+.btn-danger:hover { background:rgba(220,38,38,0.15); }
+.app-footer { display:flex; align-items:center; gap:8px; padding:14px 20px; border-top:1px solid var(--border); background:var(--surface2); }
+.app-footer .btn-danger { margin-right:auto; }
 
 /* Toast Stack */
 #toastStack { position:fixed; bottom:24px; right:24px; display:flex; flex-direction:column-reverse; gap:8px; z-index:9999; pointer-events:none; }
@@ -318,6 +322,8 @@ function renderApp(app) {
       ${renderToolRows(app.id, app.tools)}
     </div>` : ''}
     <div class="app-footer">
+      <button class="btn btn-danger" onclick="deleteServer('${app.mcpServerId}','${app.serverName}')">삭제</button>
+      <button class="btn btn-ghost" onclick="refreshServer('${app.mcpServerId}','${app.serverName}')">새로고침</button>
       <button class="btn btn-accent" onclick="save('${app.id}', ${JSON.stringify(app.tools || []).replace(/"/g, '&quot;')})">저장</button>
     </div>
   </div>`;
@@ -400,6 +406,29 @@ async function registerServer() {
   } finally {
     btn.disabled = false;
     btn.textContent = '등록';
+  }
+}
+
+async function refreshServer(serverId, serverName) {
+  try {
+    const res = await fetch(`/api/mcp/servers/${serverId}/refresh`, { method: 'POST' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    toast('새로고침 완료', serverName, 'ok');
+    setTimeout(() => load(), 800);
+  } catch(e) {
+    toast('새로고침 실패', e.message, 'err');
+  }
+}
+
+async function deleteServer(serverId, serverName) {
+  if (!confirm(`"${serverName}" 서버를 삭제하시겠습니까?\n연결된 앱 메타데이터도 함께 삭제됩니다.`)) return;
+  try {
+    const res = await fetch(`/api/mcp/servers/${serverId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    toast('삭제 완료', serverName, 'ok');
+    setTimeout(() => load(), 800);
+  } catch(e) {
+    toast('삭제 실패', e.message, 'err');
   }
 }
 
