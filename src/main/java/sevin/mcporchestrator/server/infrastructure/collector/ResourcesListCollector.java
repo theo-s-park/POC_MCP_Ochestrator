@@ -50,6 +50,7 @@ public class ResourcesListCollector implements McpCapabilityCollector {
 
     @Override
     public CollectResult collect(String serverId, String serverUrl) {
+        log.info("[ResourcesCollector] → POST {}/mcp resources/list", serverUrl);
         try {
             Map<String, Object> request = Map.of(
                 "jsonrpc", "2.0",

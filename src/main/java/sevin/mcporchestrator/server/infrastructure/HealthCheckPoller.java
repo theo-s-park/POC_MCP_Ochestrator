@@ -56,6 +56,7 @@ public class HealthCheckPoller {
     }
 
     private void pingMcp(McpServerRecord server) throws Exception {
+        log.info("[HealthCheck] → POST {}/mcp ping", server.getUrl());
         var req = java.util.Map.of("jsonrpc", "2.0", "id", 1, "method", "ping", "params", java.util.Map.of());
         String body = restClient.post()
             .uri(server.getUrl() + "/mcp")
