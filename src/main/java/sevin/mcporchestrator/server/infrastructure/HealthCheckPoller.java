@@ -53,6 +53,25 @@ public class HealthCheckPoller {
                 log.warn("[HealthCheck] failed #{}: {}", failures, server.getName());
             }
         }
+
+        if (server.getWebAppUrl() != null && !server.getWebAppUrl().isBlank()) {
+            checkWebApp(server);
+        }
+    }
+
+    private void checkWebApp(McpServerRecord server) {
+        try {
+            log.info("[WebHealthCheck] → GET {}", server.getWebAppUrl());
+            restClient.get()
+                .uri(server.getWebAppUrl())
+                .retrieve()
+                .toBodilessEntity();
+            registry.updateWebHealth(server.getServerId(), true);
+            log.info("[WebHealthCheck] ok: {}", server.getName());
+        } catch (Exception e) {
+            registry.updateWebHealth(server.getServerId(), false);
+            log.warn("[WebHealthCheck] failed: {} — {}", server.getName(), e.getMessage());
+        }
     }
 
     private void pingMcp(McpServerRecord server) throws Exception {

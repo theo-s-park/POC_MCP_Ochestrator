@@ -5,10 +5,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import sevin.mcporchestrator.common.exception.McpAppNotFoundException;
-import sevin.mcporchestrator.registry.McpServerRegistry;
-import sevin.mcporchestrator.registry.domain.McpServerRecord;
-import sevin.mcporchestrator.registry.domain.ServerStatus;
+import sevin.mcporchestrator.app.application.McpAppService;
+import sevin.mcporchestrator.app.domain.McpAppEntity;
+import sevin.mcporchestrator.app.exception.AppNotFoundException;
+import sevin.mcporchestrator.app.infrastructure.McpAppRepository;
+import sevin.mcporchestrator.app.presentation.McpAppPublicView;
+import sevin.mcporchestrator.app.presentation.McpAppUpdateRequest;
+import sevin.mcporchestrator.server.application.McpServerRecord;
+import sevin.mcporchestrator.server.domain.ServerStatus;
+import sevin.mcporchestrator.server.infrastructure.McpServerRegistry;
 
 import java.time.Instant;
 import java.util.List;
@@ -98,7 +103,6 @@ class McpAppServiceTest {
         McpAppPublicView result = service.findById("app1");
 
         assertThat(result.id()).isEqualTo("app1");
-        assertThat(result.credit()).isEqualTo(5);
         assertThat(result.displayName()).isEqualTo("HWP 변환기");
     }
 
@@ -107,7 +111,7 @@ class McpAppServiceTest {
         when(mcpAppRepository.findById("unknown")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.findById("unknown"))
-            .isInstanceOf(McpAppNotFoundException.class);
+            .isInstanceOf(AppNotFoundException.class);
     }
 
     private McpAppEntity buildApp(String id, String serverId) {

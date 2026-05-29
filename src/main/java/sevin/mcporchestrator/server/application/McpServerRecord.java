@@ -25,4 +25,6 @@ public class McpServerRecord {
     private List<McpResource> resources;
     private Instant registeredAt;
     private int healthCheckFailures;
+    private String webAppUrl;
+    private Boolean webHealthOk;
 }

@@ -5,9 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import sevin.mcporchestrator.registry.domain.McpServerRecord;
-import sevin.mcporchestrator.registry.domain.McpTool;
-import sevin.mcporchestrator.registry.domain.ServerStatus;
+import sevin.mcporchestrator.server.application.McpServerRecord;
+import sevin.mcporchestrator.server.domain.McpTool;
+import sevin.mcporchestrator.server.domain.ServerStatus;
+import sevin.mcporchestrator.server.infrastructure.McpServerRegistry;
+import sevin.mcporchestrator.server.infrastructure.McpServerRepository;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;

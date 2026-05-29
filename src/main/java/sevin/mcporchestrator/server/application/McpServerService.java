@@ -35,7 +35,7 @@ public class McpServerService {
         this.mcpAppRepository = mcpAppRepository;
     }
 
-    public McpServerRecord register(String url, String name) {
+    public McpServerRecord register(String url, String name, String webAppUrl) {
         Optional<McpServerRecord> existing = registry.findByUrl(url);
         String serverId = existing.map(McpServerRecord::getServerId)
             .orElse(UUID.randomUUID().toString());
@@ -52,6 +52,7 @@ public class McpServerService {
             .status(ServerStatus.PENDING)
             .registeredAt(registeredAt)
             .healthCheckFailures(0)
+            .webAppUrl(webAppUrl)
             .build();
 
         registry.register(record);

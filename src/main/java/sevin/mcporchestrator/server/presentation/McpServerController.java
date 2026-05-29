@@ -49,7 +49,7 @@ public class McpServerController {
         if (request.getUrl() == null || request.getUrl().isBlank()) {
             throw new McpException(ErrorCode.SERVER_URL_REQUIRED);
         }
-        McpServerRecord record = service.register(request.getUrl(), request.getName());
+        McpServerRecord record = service.register(request.getUrl(), request.getName(), request.getWebAppUrl());
         return ResponseEntity.ok(Map.of(
             "serverId", record.getServerId(),
             "status", record.getStatus()
@@ -154,5 +154,6 @@ public class McpServerController {
     public static class RegisterRequest {
         private String url;
         private String name;
+        private String webAppUrl;
     }
 }

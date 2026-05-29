@@ -41,6 +41,13 @@ public class TestMcpServerController {
         String method = (String) body.get("method");
         Object id = body.get("id");
 
+        if ("ping".equals(method)) {
+            return ResponseEntity.ok(Map.of(
+                "jsonrpc", "2.0", "id", id,
+                "result", Map.of()
+            ));
+        }
+
         if ("tools/list".equals(method)) {
             List<Map<String, Object>> tools = state.getToolNames().stream()
                 .map(name -> Map.<String, Object>of(

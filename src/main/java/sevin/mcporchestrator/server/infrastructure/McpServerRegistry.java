@@ -113,6 +113,14 @@ public class McpServerRegistry {
         });
     }
 
+    public void updateWebHealth(String serverId, boolean ok) {
+        servers.computeIfPresent(serverId, (id, record) -> {
+            record.setWebHealthOk(ok);
+            repository.save(toEntity(record));
+            return record;
+        });
+    }
+
     public void resetHealthCheckFailure(String serverId) {
         servers.computeIfPresent(serverId, (id, record) -> {
             record.setHealthCheckFailures(0);
@@ -134,6 +142,8 @@ public class McpServerRegistry {
             .resourcesJson(toJson(record.getResources()))
             .registeredAt(record.getRegisteredAt())
             .healthCheckFailures(record.getHealthCheckFailures())
+            .webAppUrl(record.getWebAppUrl())
+            .webHealthOk(record.getWebHealthOk())
             .build();
     }
 
@@ -150,6 +160,8 @@ public class McpServerRegistry {
             .resources(fromJson(entity.getResourcesJson(), McpResource.class))
             .registeredAt(entity.getRegisteredAt())
             .healthCheckFailures(entity.getHealthCheckFailures())
+            .webAppUrl(entity.getWebAppUrl())
+            .webHealthOk(entity.getWebHealthOk())
             .build();
     }
 

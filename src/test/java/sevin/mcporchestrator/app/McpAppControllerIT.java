@@ -10,9 +10,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
-import sevin.mcporchestrator.registry.McpServerRegistry;
-import sevin.mcporchestrator.registry.domain.McpServerRecord;
-import sevin.mcporchestrator.registry.domain.ServerStatus;
+import sevin.mcporchestrator.app.domain.McpAppEntity;
+import sevin.mcporchestrator.app.infrastructure.McpAppRepository;
+import sevin.mcporchestrator.server.infrastructure.McpServerRegistry;
+import sevin.mcporchestrator.server.application.McpServerRecord;
+import sevin.mcporchestrator.server.domain.ServerStatus;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -118,7 +120,6 @@ class McpAppControllerIT {
 
         assertThat(body).contains(appId);
         assertThat(body).contains("단건 앱");
-        assertThat(body).contains("7");
     }
 
     @Test

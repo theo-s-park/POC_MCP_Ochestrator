@@ -176,11 +176,15 @@ body::before {
         <label>Endpoint URL</label>
         <input type="text" id="reg-url" placeholder="https://xxx.lambda-url.ap-northeast-2.on.aws" style="font-family:var(--font-mono);font-size:12px">
       </div>
+      <div class="field">
+        <label>Web URL (선택)</label>
+        <input type="text" id="reg-weburl" placeholder="https://s3.../index.html" style="font-family:var(--font-mono);font-size:12px">
+      </div>
       <div class="field" style="max-width:200px">
         <label>이름 (선택)</label>
         <input type="text" id="reg-name" placeholder="자동 추출">
       </div>
-        <button class="btn btn-primary" id="reg-btn" onclick="registerServer()">등록</button>
+      <button class="btn btn-primary" id="reg-btn" onclick="registerServer()">등록</button>
       <button class="btn btn-ghost" onclick="openArchModal()" style="white-space:nowrap">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>아키텍처
       </button>
@@ -352,6 +356,7 @@ function renderApp(app) {
       </div>
       <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
         <button class="btn-probe" onclick="event.stopPropagation();openProbeModal('${app.mcpServerId}','${app.serverName}')">Probe</button>
+        ${app.webAppUrl ? `<span class="visible-badge ${app.webHealthOk === true ? 'on' : app.webHealthOk === false ? 'off' : 'pending'}" title="${app.webAppUrl}">Web ${app.webHealthOk === true ? '✓' : app.webHealthOk === false ? '✕' : '…'}</span>` : ''}
         <span class="visible-badge ${visibleClass}">${visibleText}</span>
         <svg id="chevron-${app.id}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted);transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
@@ -510,6 +515,7 @@ function toast(title, sub, type = 'ok', dur = 3000) {
 async function registerServer() {
   const url = document.getElementById('reg-url').value.trim();
   const name = document.getElementById('reg-name').value.trim();
+  const webAppUrl = document.getElementById('reg-weburl').value.trim();
   if (!url) { toast('URL을 입력해주세요', '', 'err'); return; }
 
   const btn = document.getElementById('reg-btn');
@@ -520,13 +526,14 @@ async function registerServer() {
     const res = await fetch('/api/mcp/servers/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, name: name || null }),
+      body: JSON.stringify({ url, name: name || null, webAppUrl: webAppUrl || null }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     toast('등록 완료', `${data.status}`, 'ok');
     document.getElementById('reg-url').value = '';
     document.getElementById('reg-name').value = '';
+    document.getElementById('reg-weburl').value = '';
     setTimeout(() => load(), 800);
   } catch(e) {
     toast('등록 실패', e.message, 'err');

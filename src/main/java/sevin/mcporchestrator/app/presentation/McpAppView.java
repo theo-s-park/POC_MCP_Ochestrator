@@ -22,7 +22,9 @@ public record McpAppView(
     int credit,
     String description,
     boolean isVisible,
-    List<ToolCreditView> tools
+    List<ToolCreditView> tools,
+    String webAppUrl,
+    Boolean webHealthOk
 ) {
     public record ToolCreditView(String toolName, String serviceType, int deductCredit, boolean visible) {}
 
@@ -53,7 +55,9 @@ public record McpAppView(
             app.getCredit(),
             app.getDescription(),
             app.isVisible(),
-            tools
+            tools,
+            server != null ? server.getWebAppUrl() : null,
+            server != null ? server.getWebHealthOk() : null
         );
     }
 }

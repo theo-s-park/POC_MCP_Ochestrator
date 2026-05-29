@@ -6,12 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
-import sevin.mcporchestrator.app.McpAppEntity;
-import sevin.mcporchestrator.app.McpAppRepository;
-import sevin.mcporchestrator.registry.HealthCheckPoller;
-import sevin.mcporchestrator.registry.McpServerRegistry;
-import sevin.mcporchestrator.registry.domain.McpServerRecord;
-import sevin.mcporchestrator.registry.domain.ServerStatus;
+import sevin.mcporchestrator.app.domain.McpAppEntity;
+import sevin.mcporchestrator.app.infrastructure.McpAppRepository;
+import sevin.mcporchestrator.server.infrastructure.HealthCheckPoller;
+import sevin.mcporchestrator.server.infrastructure.McpServerRegistry;
+import sevin.mcporchestrator.server.application.McpServerRecord;
+import sevin.mcporchestrator.server.domain.ServerStatus;
 import sevin.mcporchestrator.support.TestMcpServerState;
 
 import java.io.IOException;

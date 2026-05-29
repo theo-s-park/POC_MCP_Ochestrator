@@ -35,4 +35,6 @@ public class McpServerEntity {
 
     private Instant registeredAt;
     private int healthCheckFailures;
+    private String webAppUrl;
+    private Boolean webHealthOk;
 }
