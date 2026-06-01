@@ -837,11 +837,12 @@ function switchTab(name) {
 
 /* ── Lambda creation — step definitions ── */
 const STEPS = [
-  { id: 'ECR',        label: 'ECR 리포지토리',  desc: '컨테이너 이미지 저장소 생성' },
-  { id: 'LAMBDA',     label: 'Lambda 함수',     desc: '베이스 이미지로 함수 생성 (1~2분 소요)' },
-  { id: 'URL',        label: 'Function URL',    desc: 'HTTPS 엔드포인트 활성화' },
-  { id: 'S3',         label: 'S3 버킷',         desc: '파일 스토리지 버킷 생성' },
-  { id: 'CLOUDFRONT', label: 'CloudFront 배포', desc: 'CDN 배포 생성 (수십 초 소요)' },
+  { id: 'ECR',        label: 'ECR 리포지토리',       desc: '컨테이너 이미지 저장소 생성' },
+  { id: 'PUSH',       label: 'Placeholder 이미지',   desc: 'ECR에 베이스 이미지 push (수분 소요)' },
+  { id: 'LAMBDA',     label: 'Lambda 함수',          desc: 'ECR 이미지로 함수 생성 (1~2분 소요)' },
+  { id: 'URL',        label: 'Function URL',         desc: 'HTTPS 엔드포인트 활성화' },
+  { id: 'S3',         label: 'S3 버킷',              desc: '파일 스토리지 버킷 생성' },
+  { id: 'CLOUDFRONT', label: 'CloudFront 배포',      desc: 'CDN 배포 생성 (수십 초 소요)' },
 ];
 let _lastResult = null;
 

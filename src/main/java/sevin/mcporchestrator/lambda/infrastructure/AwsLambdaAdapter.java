@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.lambda.model.CreateFunctionUrlConfigReque
 import software.amazon.awssdk.services.lambda.model.FunctionCode;
 import software.amazon.awssdk.services.lambda.model.FunctionUrlAuthType;
 import software.amazon.awssdk.services.lambda.model.PackageType;
+import software.amazon.awssdk.services.lambda.model.UpdateFunctionCodeRequest;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -75,5 +76,24 @@ public class AwsLambdaAdapter {
         String url = urlResponse.functionUrl();
         log.info("[Lambda] function URL enabled: {}", url);
         return url;
+    }
+
+    /**
+     * Lambda 함수 코드를 ECR 최신 이미지로 업데이트한다.
+     * 개발자가 실제 이미지를 ECR에 push한 뒤 호출한다.
+     */
+    public String updateFunctionCode(String functionName, String imageUri) {
+        var response = lambdaClient.updateFunctionCode(UpdateFunctionCodeRequest.builder()
+            .functionName(functionName)
+            .imageUri(imageUri)
+            .build());
+
+        lambdaClient.waiter().waitUntilFunctionUpdated(
+            r -> r.functionName(functionName),
+            o -> o.waitTimeout(Duration.ofMinutes(5))
+        );
+
+        log.info("[Lambda] function code updated: {} → {}", functionName, imageUri);
+        return response.functionArn();
     }
 }
