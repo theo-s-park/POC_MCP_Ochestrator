@@ -38,6 +38,14 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
+
+    // AWS SDK v2
+    implementation platform('software.amazon.awssdk:bom:2.25.69')
+    implementation 'software.amazon.awssdk:lambda'
+    implementation 'software.amazon.awssdk:ecr'
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:cloudfront'
+    implementation 'software.amazon.awssdk:secretsmanager'
 }
 
 tasks.named('test') {

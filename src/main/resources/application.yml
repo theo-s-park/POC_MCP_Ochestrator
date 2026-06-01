@@ -53,6 +53,13 @@ server:
       charset: UTF-8
       force: true
 
+aws:
+  region: ${AWS_REGION:ap-northeast-2}
+  lambda:
+    execution-role-arn: ${AWS_LAMBDA_EXECUTION_ROLE_ARN:}
+    timeout: ${AWS_LAMBDA_TIMEOUT:30}
+    memory-size: ${AWS_LAMBDA_MEMORY_SIZE:512}
+
 mcp:
   orchestrator:
     health-check:

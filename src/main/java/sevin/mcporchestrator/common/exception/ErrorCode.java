@@ -16,7 +16,11 @@ public enum ErrorCode {
     RESOURCE_UPSTREAM_ERROR(HttpStatus.BAD_GATEWAY, "RESOURCE_002", "MCP 서버에서 리소스를 가져오는 데 실패했습니다."),
 
     // Auth
-    OAUTH_EXCHANGE_FAILED(HttpStatus.UNAUTHORIZED, "AUTH_001", "OAuth 토큰 교환에 실패했습니다.");
+    OAUTH_EXCHANGE_FAILED(HttpStatus.UNAUTHORIZED, "AUTH_001", "OAuth 토큰 교환에 실패했습니다."),
+
+    // Infra
+    LAMBDA_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "INFRA_001", "Lambda 프로비저닝이 이 환경에서 설정되지 않았습니다."),
+    LAMBDA_CREATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "INFRA_002", "Lambda 함수 생성에 실패했습니다.");
 
     private final HttpStatus status;
     private final String code;
