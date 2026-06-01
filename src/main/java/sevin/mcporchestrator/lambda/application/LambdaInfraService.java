@@ -85,26 +85,23 @@ public class LambdaInfraService {
         String ecrRepoUri = step("ECR", onStep,
             () -> ecrAdapter.createRepository(names.ecrRepoName()));
 
-        // 2. Lambda
-        String functionArn = step("LAMBDA", onStep,
-            () -> lambdaAdapter.createFunction(functionName, effectiveRuntime.getBaseImageUri(),
-                executionRoleArn, effectiveTimeout, effectiveMemory));
+        // 2. Lambda — private ECR 이미지가 push된 뒤에만 생성 가능하므로 이 단계는 건너뜀
+        onStep.accept(new LambdaInfraStep("LAMBDA", "pending",
+            "ECR(" + ecrRepoUri + ")에 이미지를 push한 뒤 별도로 생성하세요"));
+        onStep.accept(new LambdaInfraStep("URL", "pending",
+            "Lambda 생성 완료 후 활성화됩니다"));
 
-        // 3. Function URL
-        String lambdaUrl = step("URL", onStep,
-            () -> lambdaAdapter.enableFunctionUrl(functionName));
-
-        // 4. S3
+        // 3. S3
         String s3BucketName = step("S3", onStep,
             () -> s3Adapter.createBucket(names.s3BucketName()));
 
-        // 5. CloudFront
+        // 4. CloudFront
         String cloudFrontDomain = step("CLOUDFRONT", onStep,
             () -> cloudFrontAdapter.createDistribution(s3BucketName, functionName));
 
-        log.info("[LambdaInfra] provisioning complete: {}", functionName);
+        log.info("[LambdaInfra] provisioning complete (Lambda pending image push): {}", functionName);
 
-        return new LambdaInfraResult(functionName, functionArn, lambdaUrl,
+        return new LambdaInfraResult(functionName, null, null,
             ecrRepoUri, s3BucketName, cloudFrontDomain);
     }
 

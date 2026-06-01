@@ -183,6 +183,8 @@ body::before {
 .step-icon.running { background:var(--blue-d); color:var(--blue); border:2px solid rgba(37,99,235,.3); animation:pulse 1.4s ease-in-out infinite; }
 .step-icon.done { background:var(--green-d); color:var(--green); border:2px solid rgba(22,163,74,.25); }
 .step-icon.error { background:rgba(220,38,38,.08); color:var(--red); border:2px solid rgba(220,38,38,.25); }
+.step-icon.pending { background:rgba(217,119,6,.08); color:var(--amber); border:2px solid rgba(217,119,6,.25); }
+.step-label.pending { color:var(--amber); }
 .step-body { flex:1; min-width:0; padding-top:3px; }
 .step-label { font-size:13px; font-weight:500; line-height:1.2; transition:color .3s; }
 .step-label.waiting { color:var(--muted); }
@@ -848,7 +850,7 @@ function renderSteps(statuses) {
   list.innerHTML = STEPS.map((s, i) => {
     const st = statuses[s.id] || 'waiting';
     const val = statuses[s.id + '_value'] || '';
-    const icon = { waiting:'–', running:'↻', done:'✓', error:'✕' }[st] || '–';
+    const icon = { waiting:'–', running:'↻', done:'✓', error:'✕', pending:'⏸' }[st] || '–';
     const spinClass = st === 'running' ? ' spin' : '';
     return `
     <div class="step-row" id="srow-${s.id}">
