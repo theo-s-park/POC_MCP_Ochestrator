@@ -35,7 +35,8 @@ public class McpServerService {
         this.mcpAppRepository = mcpAppRepository;
     }
 
-    public McpServerRecord register(String url, String name, String webAppUrl) {
+    public McpServerRecord register(String url, String name, String webAppUrl, ServerType type) {
+        ServerType resolvedType = type != null ? type : ServerType.MCP;
         Optional<McpServerRecord> existing = registry.findByUrl(url);
         String serverId = existing.map(McpServerRecord::getServerId)
             .orElse(UUID.randomUUID().toString());
@@ -48,7 +49,7 @@ public class McpServerService {
             .serverId(serverId)
             .name(resolvedName)
             .url(url)
-            .type(ServerType.MCP)
+            .type(resolvedType)
             .status(ServerStatus.PENDING)
             .registeredAt(registeredAt)
             .healthCheckFailures(0)
@@ -56,10 +57,10 @@ public class McpServerService {
             .build();
 
         registry.register(record);
-        log.info("[Registry] {}: {} ({}) type={}", existing.isPresent() ? "re-registered" : "registered", resolvedName, serverId, ServerType.MCP);
+        log.info("[Registry] {}: {} ({}) type={}", existing.isPresent() ? "re-registered" : "registered", resolvedName, serverId, resolvedType);
 
         for (McpCapabilityCollector collector : collectors) {
-            if (!collector.supports(ServerType.MCP)) continue;
+            if (!collector.supports(resolvedType)) continue;
             CollectResult result = collector.collect(serverId, url);
             if (collector.isRequired() && result != CollectResult.SUCCESS) {
                 log.warn("[Registry] required collector {} returned {} - marking REGISTRATION_FAILED: {}",

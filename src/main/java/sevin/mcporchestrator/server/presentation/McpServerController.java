@@ -49,7 +49,7 @@ public class McpServerController {
         if (request.getUrl() == null || request.getUrl().isBlank()) {
             throw new McpException(ErrorCode.SERVER_URL_REQUIRED);
         }
-        McpServerRecord record = service.register(request.getUrl(), request.getName(), request.getWebAppUrl());
+        McpServerRecord record = service.register(request.getUrl(), request.getName(), request.getWebAppUrl(), request.getType());
         return ResponseEntity.ok(Map.of(
             "serverId", record.getServerId(),
             "status", record.getStatus()
@@ -137,15 +137,28 @@ public class McpServerController {
         McpServerRecord server = registry.find(serverId)
             .orElseThrow(ServerNotFoundException::new);
 
-        Map<String, Object> req = Map.of(
-            "jsonrpc", "2.0", "id", 1, "method", method, "params", Map.of()
-        );
-        String body = restClient.post()
-            .uri(server.getUrl() + "/mcp")
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(objectMapper.writeValueAsString(req))
-            .retrieve()
-            .body(String.class);
+        String body;
+        if (server.getType().isWebapp()) {
+            String path = switch (method) {
+                case "tools/list"     -> "/tools";
+                case "resources/list" -> "/resources";
+                default               -> "/" + method;
+            };
+            body = restClient.get()
+                .uri(server.getUrl() + path)
+                .retrieve()
+                .body(String.class);
+        } else {
+            Map<String, Object> req = Map.of(
+                "jsonrpc", "2.0", "id", 1, "method", method, "params", Map.of()
+            );
+            body = restClient.post()
+                .uri(server.getUrl() + "/mcp")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(objectMapper.writeValueAsString(req))
+                .retrieve()
+                .body(String.class);
+        }
 
         return ResponseEntity.ok(objectMapper.readTree(body));
     }
@@ -155,5 +168,6 @@ public class McpServerController {
         private String url;
         private String name;
         private String webAppUrl;
+        private sevin.mcporchestrator.server.domain.ServerType type;
     }
 }
