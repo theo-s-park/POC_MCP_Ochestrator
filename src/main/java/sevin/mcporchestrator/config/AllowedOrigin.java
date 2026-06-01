@@ -2,6 +2,7 @@ package sevin.mcporchestrator.config;
 
 public enum AllowedOrigin {
     TB("https://tb-ca-cloud.polarisoffice.com"),
+    TB_MCP("https://tb-mcp-manager.polarisoffice.com"),
     VF("https://vf-ca-cloud.polarisoffice.com");
 
     private final String url;
