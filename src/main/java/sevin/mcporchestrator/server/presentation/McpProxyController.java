@@ -102,19 +102,31 @@ public class McpProxyController {
 
         McpServerRecord server = serverOpt.get();
         try {
-            Map<String, Object> req = Map.of(
-                "jsonrpc", "2.0",
-                "id", id,
-                "method", "tools/call",
-                "params", Map.of("name", toolName, "arguments", arguments)
-            );
-            String responseBody = restClient.post()
-                .uri(server.getUrl() + "/mcp")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(objectMapper.writeValueAsString(req))
-                .retrieve()
-                .body(String.class);
-            return objectMapper.readTree(responseBody);
+            String responseBody;
+            if (server.getType().isWebapp()) {
+                Map<String, Object> req = Map.of("name", toolName, "arguments", arguments);
+                responseBody = restClient.post()
+                    .uri(server.getUrl() + "/tools/call")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(objectMapper.writeValueAsString(req))
+                    .retrieve()
+                    .body(String.class);
+                return ok(id, objectMapper.readTree(responseBody));
+            } else {
+                Map<String, Object> req = Map.of(
+                    "jsonrpc", "2.0",
+                    "id", id,
+                    "method", "tools/call",
+                    "params", Map.of("name", toolName, "arguments", arguments)
+                );
+                responseBody = restClient.post()
+                    .uri(server.getUrl() + "/mcp")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(objectMapper.writeValueAsString(req))
+                    .retrieve()
+                    .body(String.class);
+                return objectMapper.readTree(responseBody);
+            }
         } catch (Exception e) {
             log.error("[McpProxy] tools/call proxy failed - server {}, tool {}: {}", server.getServerId(), toolName, e.getMessage());
             return error(id, -32603, "Upstream error: " + e.getMessage());

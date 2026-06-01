@@ -49,19 +49,29 @@ public class McpResourceProxyController {
             .orElseThrow(ServerNotFoundException::new);
 
         try {
-            Map<String, Object> request = Map.of(
-                "jsonrpc", "2.0",
-                "id", 1,
-                "method", "resources/read",
-                "params", Map.of("uri", uri)
-            );
-            String responseBody = restClient.post()
-                .uri(server.getUrl() + "/mcp")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(objectMapper.writeValueAsString(request))
-                .retrieve()
-                .body(String.class);
-            JsonNode contents = objectMapper.readTree(responseBody).path("result").path("contents");
+            String responseBody;
+            JsonNode contents;
+            if (server.getType().isWebapp()) {
+                responseBody = restClient.get()
+                    .uri(server.getUrl() + "/resources/read?uri=" + java.net.URLEncoder.encode(uri, java.nio.charset.StandardCharsets.UTF_8))
+                    .retrieve()
+                    .body(String.class);
+                contents = objectMapper.readTree(responseBody).path("contents");
+            } else {
+                Map<String, Object> request = Map.of(
+                    "jsonrpc", "2.0",
+                    "id", 1,
+                    "method", "resources/read",
+                    "params", Map.of("uri", uri)
+                );
+                responseBody = restClient.post()
+                    .uri(server.getUrl() + "/mcp")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(objectMapper.writeValueAsString(request))
+                    .retrieve()
+                    .body(String.class);
+                contents = objectMapper.readTree(responseBody).path("result").path("contents");
+            }
 
             if (!contents.isArray() || contents.isEmpty()) {
                 throw new McpResourceException(ErrorCode.RESOURCE_NOT_FOUND);

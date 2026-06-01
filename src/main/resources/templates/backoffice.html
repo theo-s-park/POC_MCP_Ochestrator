@@ -180,6 +180,13 @@ body::before {
         <label>Web URL (선택)</label>
         <input type="text" id="reg-weburl" placeholder="https://s3.../index.html" style="font-family:var(--font-mono);font-size:12px">
       </div>
+      <div class="field" style="max-width:140px">
+        <label>타입</label>
+        <select id="reg-type" style="appearance:none;background:var(--surface2);background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 10px center;border:1px solid var(--border);border-radius:6px;padding:8px 28px 8px 12px;color:var(--text);font-family:var(--font-mono);font-size:12px;font-weight:600;outline:none;cursor:pointer;transition:all .15s;width:100%" onchange="onRegTypeChange(this)">
+          <option value="MCP">MCP</option>
+          <option value="WEBAPP">WEBAPP</option>
+        </select>
+      </div>
       <div class="field" style="max-width:200px">
         <label>이름 (선택)</label>
         <input type="text" id="reg-name" placeholder="자동 추출">
@@ -512,10 +519,23 @@ function toast(title, sub, type = 'ok', dur = 3000) {
   setTimeout(() => { el.classList.remove('in'); setTimeout(() => el.remove(), 300); }, dur);
 }
 
+function onRegTypeChange(sel) {
+  if (sel.value === 'WEBAPP') {
+    sel.style.borderColor = 'var(--blue)';
+    sel.style.color = 'var(--blue)';
+    sel.style.background = 'var(--blue-d)';
+  } else {
+    sel.style.borderColor = 'var(--accent)';
+    sel.style.color = 'var(--accent)';
+    sel.style.background = 'var(--accent-d)';
+  }
+}
+
 async function registerServer() {
   const url = document.getElementById('reg-url').value.trim();
   const name = document.getElementById('reg-name').value.trim();
   const webAppUrl = document.getElementById('reg-weburl').value.trim();
+  const type = document.getElementById('reg-type').value;
   if (!url) { toast('URL을 입력해주세요', '', 'err'); return; }
 
   const btn = document.getElementById('reg-btn');
@@ -526,7 +546,7 @@ async function registerServer() {
     const res = await fetch('/api/mcp/servers/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, name: name || null, webAppUrl: webAppUrl || null }),
+      body: JSON.stringify({ url, name: name || null, webAppUrl: webAppUrl || null, type }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -629,6 +649,7 @@ function escProbe(s) {
 }
 
 load();
+onRegTypeChange(document.getElementById('reg-type'));
 </script>
 </body>
 </html>
