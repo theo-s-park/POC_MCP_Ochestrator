@@ -48,13 +48,15 @@ public class McpServerService {
     private McpServerRecord doRegister(String url, String name, String webAppUrl, ServerType type,
                                        Consumer<HandshakeStep> stepCallback) {
         ServerType resolvedType = type != null ? type : ServerType.MCP;
-        Optional<McpServerRecord> existing = registry.findByUrl(url);
+        // 트레일링 슬래시 제거 — 컬렉터들이 url + "/mcp" 할 때 //mcp 방지
+        String normalizedUrl = url != null && url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+        Optional<McpServerRecord> existing = registry.findByUrl(normalizedUrl);
         String serverId = existing.map(McpServerRecord::getServerId)
             .orElse(UUID.randomUUID().toString());
         Instant registeredAt = existing.map(McpServerRecord::getRegisteredAt)
             .orElse(Instant.now());
 
-        String resolvedName = (name != null && !name.isBlank()) ? name : deriveNameFromUrl(url);
+        String resolvedName = (name != null && !name.isBlank()) ? name : deriveNameFromUrl(normalizedUrl);
 
         // 기존 등록 시 저장된 MCP 키 보존 (Lambda 생성 시 주입된 키가 재등록 시 날아가지 않도록)
         String preservedKey = existing.map(McpServerRecord::getMcpKeyEncrypted).orElse(null);
@@ -62,7 +64,7 @@ public class McpServerService {
         McpServerRecord record = McpServerRecord.builder()
             .serverId(serverId)
             .name(resolvedName)
-            .url(url)
+            .url(normalizedUrl)
             .type(resolvedType)
             .status(ServerStatus.PENDING)
             .registeredAt(registeredAt)
@@ -77,7 +79,7 @@ public class McpServerService {
         for (McpCapabilityCollector collector : collectors) {
             if (!collector.supports(resolvedType)) continue;
             emit(stepCallback, collector.method(), "running");
-            CollectResult result = collector.collect(serverId, url);
+            CollectResult result = collector.collect(serverId, normalizedUrl);
             emit(stepCallback, collector.method(), result == CollectResult.SUCCESS ? "done" : "error");
             if (collector.isRequired() && result != CollectResult.SUCCESS) {
                 log.warn("[Registry] required collector {} returned {} - marking REGISTRATION_FAILED: {}",
