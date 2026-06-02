@@ -56,6 +56,9 @@ public class McpServerService {
 
         String resolvedName = (name != null && !name.isBlank()) ? name : deriveNameFromUrl(url);
 
+        // 기존 등록 시 저장된 MCP 키 보존 (Lambda 생성 시 주입된 키가 재등록 시 날아가지 않도록)
+        String preservedKey = existing.map(McpServerRecord::getMcpKeyEncrypted).orElse(null);
+
         McpServerRecord record = McpServerRecord.builder()
             .serverId(serverId)
             .name(resolvedName)
@@ -65,6 +68,7 @@ public class McpServerService {
             .registeredAt(registeredAt)
             .healthCheckFailures(0)
             .webAppUrl(webAppUrl)
+            .mcpKeyEncrypted(preservedKey)
             .build();
 
         registry.register(record);
