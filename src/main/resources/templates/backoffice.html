@@ -1012,6 +1012,7 @@ let _lastResult = null;
 
 function renderSteps(statuses) {
   const list = document.getElementById('step-list');
+  if (!list) return;
   list.innerHTML = STEPS.map((s, i) => {
     const st = statuses[s.id] || 'waiting';
     const val = statuses[s.id + '_value'] || '';
