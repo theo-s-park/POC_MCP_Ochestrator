@@ -254,10 +254,14 @@ body::before {
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       서버 관리
     </button>
-    <button class="tab-btn" id="tabBtn-create" onclick="switchTab('create')">
+    <button class="tab-btn" id="tabBtn-create" onclick="switchTab('create')" sec:authorize="hasRole('ADMIN')">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
       서버 생성
     </button>
+    <a class="tab-btn" href="/login" sec:authorize="!hasRole('ADMIN')" style="text-decoration:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      서버 생성 (로그인 필요)
+    </a>
   </div>
 
   <!-- ── Tab 1: 서버 등록 ── -->
@@ -307,7 +311,19 @@ body::before {
 
   <!-- ── Tab 3: 서버 생성 ── -->
   <div id="tab-create" class="tab-panel">
-    <div class="create-layout">
+
+    <!-- 비로그인: 로그인 유도 -->
+    <div sec:authorize="!hasRole('ADMIN')" style="max-width:480px">
+      <div class="register-card" style="text-align:center;padding:40px 32px">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5" style="margin-bottom:16px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <div style="font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:8px">어드민 로그인이 필요합니다</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Lambda 인프라 생성은 어드민 전용 기능입니다.</p>
+        <a href="/login" class="btn btn-primary" style="text-decoration:none;display:inline-flex">로그인하기</a>
+      </div>
+    </div>
+
+    <!-- 로그인: 실제 생성 UI -->
+    <div sec:authorize="hasRole('ADMIN')" class="create-layout">
 
       <!-- 왼쪽: 설정 폼 -->
       <div class="create-form-card">
@@ -389,8 +405,8 @@ body::before {
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </div><!-- /create-layout (sec:authorize ADMIN) -->
+  </div><!-- /tab-create -->
 </main>
 
 <!-- Architecture Modal -->
