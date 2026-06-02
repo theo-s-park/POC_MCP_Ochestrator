@@ -79,13 +79,12 @@ public class AwsLambdaAdapter {
             .functionUrlAuthType(FunctionUrlAuthType.NONE)
             .build());
 
-        // 3-2) InvokeFunction via Function URL — 실제 실행 권한
+        // 3-2) InvokeFunction via Function URL — 실제 실행 권한 (FunctionUrlAuthType 조건 없이)
         lambdaClient.addPermission(AddPermissionRequest.builder()
             .functionName(functionName)
             .statementId("FunctionURLAllowInvokeAction")
             .action("lambda:InvokeFunction")
             .principal("*")
-            .functionUrlAuthType(FunctionUrlAuthType.NONE)
             .build());
 
         var urlResponse = lambdaClient.createFunctionUrlConfig(CreateFunctionUrlConfigRequest.builder()
