@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 @Service
 public class McpServerService {
@@ -36,6 +37,16 @@ public class McpServerService {
     }
 
     public McpServerRecord register(String url, String name, String webAppUrl, ServerType type) {
+        return doRegister(url, name, webAppUrl, type, null);
+    }
+
+    public McpServerRecord registerWithStream(String url, String name, String webAppUrl, ServerType type,
+                                              Consumer<HandshakeStep> stepCallback) {
+        return doRegister(url, name, webAppUrl, type, stepCallback);
+    }
+
+    private McpServerRecord doRegister(String url, String name, String webAppUrl, ServerType type,
+                                       Consumer<HandshakeStep> stepCallback) {
         ServerType resolvedType = type != null ? type : ServerType.MCP;
         Optional<McpServerRecord> existing = registry.findByUrl(url);
         String serverId = existing.map(McpServerRecord::getServerId)
@@ -61,29 +72,36 @@ public class McpServerService {
 
         for (McpCapabilityCollector collector : collectors) {
             if (!collector.supports(resolvedType)) continue;
+            emit(stepCallback, collector.method(), "running");
             CollectResult result = collector.collect(serverId, url);
+            emit(stepCallback, collector.method(), result == CollectResult.SUCCESS ? "done" : "error");
             if (collector.isRequired() && result != CollectResult.SUCCESS) {
                 log.warn("[Registry] required collector {} returned {} - marking REGISTRATION_FAILED: {}",
                     collector.method(), result, serverId);
                 registry.updateStatus(serverId, ServerStatus.REGISTRATION_FAILED);
+                ensureApp(serverId, existing.isPresent(), null);
                 return registry.find(serverId).orElse(record);
             }
         }
 
         registry.updateStatus(serverId, ServerStatus.ACTIVE);
-        log.info("[Registry] ACTIVE: {} ({})", name, serverId);
+        log.info("[Registry] ACTIVE: {} ({})", resolvedName, serverId);
 
-        String autoThumbnail = null;
-        Optional<McpServerRecord> activeServer = registry.find(serverId);
-        if (activeServer.isPresent() && activeServer.get().getResources() != null) {
-            autoThumbnail = activeServer.get().getResources().stream()
-                .filter(r -> r.getMimeType() != null && r.getMimeType().startsWith("image/"))
-                .findFirst()
-                .map(r -> "/api/mcp/servers/" + serverId + "/resources/content?uri="
-                    + URLEncoder.encode(r.getUri(), StandardCharsets.UTF_8))
-                .orElse(null);
-        }
+        String autoThumbnail = registry.find(serverId)
+            .map(s -> s.getResources() == null ? null :
+                s.getResources().stream()
+                    .filter(r -> r.getMimeType() != null && r.getMimeType().startsWith("image/"))
+                    .findFirst()
+                    .map(r -> "/api/mcp/servers/" + serverId + "/resources/content?uri="
+                        + URLEncoder.encode(r.getUri(), StandardCharsets.UTF_8))
+                    .orElse(null))
+            .orElse(null);
 
+        ensureApp(serverId, existing.isPresent(), autoThumbnail);
+        return registry.find(serverId).orElse(record);
+    }
+
+    private void ensureApp(String serverId, boolean existing, String autoThumbnail) {
         McpAppEntity app = mcpAppRepository.findByMcpServerId(serverId)
             .orElse(McpAppEntity.builder()
                 .id(UUID.randomUUID().toString())
@@ -94,10 +112,11 @@ public class McpServerService {
             app.setThumbnail(autoThumbnail);
         }
         mcpAppRepository.save(app);
-        log.info("[McpApp] {} for server {} (thumbnail={})",
-            existing.isPresent() ? "updated" : "created", serverId, autoThumbnail);
+        log.info("[McpApp] {} for server {} (thumbnail={})", existing ? "updated" : "created", serverId, autoThumbnail);
+    }
 
-        return registry.find(serverId).orElse(record);
+    private void emit(Consumer<HandshakeStep> cb, String step, String status) {
+        if (cb != null) cb.accept(new HandshakeStep(step, status));
     }
 
     public McpServerRecord refresh(String serverId) {

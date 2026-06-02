@@ -313,6 +313,13 @@ button.nav-item { background:transparent; border:none; width:100%; text-align:le
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
         등록
       </button>
+
+      <!-- 핸드셰이킹 단계 -->
+      <div id="reg-steps" style="display:none;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:4px">
+        <div style="padding:10px 14px 6px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);background:var(--surface2)">핸드셰이킹</div>
+        <div id="reg-step-list" style="padding:6px 0"></div>
+      </div>
+
       <div class="reg-hint" style="margin-top:0">
         <strong>서버 생성</strong>에서 인프라를 프로비저닝하면 URL이 자동으로 채워집니다.
       </div>
@@ -771,6 +778,43 @@ function onRegTypeChange(sel) {
   }
 }
 
+const REG_STEPS = [
+  { id: 'ping',           label: 'Ping',         desc: '서버 연결 확인' },
+  { id: 'tools/list',     label: 'tools/list',   desc: '툴 목록 수집' },
+  { id: 'resources/list', label: 'resources/list', desc: '리소스 목록 수집' },
+];
+
+function renderRegSteps(statuses) {
+  const list = document.getElementById('reg-step-list');
+  list.innerHTML = REG_STEPS.map(s => {
+    const st = statuses[s.id] || 'waiting';
+    const icon = { waiting:'–', running:'↻', done:'✓', error:'✕' }[st] || '–';
+    const spinClass = st === 'running' ? ' spin' : '';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 14px">
+      <div class="step-icon ${st}${spinClass}" style="width:22px;height:22px;font-size:11px">${icon}</div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:500;color:${st==='done'?'var(--text)':st==='error'?'var(--red)':st==='running'?'var(--blue)':'var(--muted)'}">${s.label}</div>
+        <div style="font-size:11px;color:var(--subtle)">${s.desc}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateRegStep(stepId, status) {
+  const statuses = {};
+  REG_STEPS.forEach(s => {
+    const el = document.querySelector(`#reg-step-list .step-icon[data-step="${s.id}"]`);
+    statuses[s.id] = el ? el.dataset.st : 'waiting';
+  });
+  statuses[stepId] = status;
+  renderRegSteps(statuses);
+  // data-step 속성 재설정
+  document.querySelectorAll('#reg-step-list .step-icon').forEach((el, i) => {
+    el.dataset.step = REG_STEPS[i].id;
+    el.dataset.st = Object.values(statuses)[i] || 'waiting';
+  });
+}
+
 async function registerServer() {
   const url = document.getElementById('reg-url').value.trim();
   const name = document.getElementById('reg-name').value.trim();
@@ -780,27 +824,68 @@ async function registerServer() {
 
   const btn = document.getElementById('reg-btn');
   btn.disabled = true;
-  btn.textContent = '등록 중...';
+  btn.innerHTML = '<span class="spin">↻</span> 등록 중...';
+
+  const stepsEl = document.getElementById('reg-steps');
+  stepsEl.style.display = 'block';
+  const stepStatuses = {};
+  renderRegSteps(stepStatuses);
 
   try {
-    const res = await fetch('/api/mcp/servers/register', {
+    const response = await fetch('/api/mcp/servers/register-stream', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
       body: JSON.stringify({ url, name: name || null, webAppUrl: webAppUrl || null, type }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-    toast('등록 완료', `${data.status}`, 'ok');
-    document.getElementById('reg-url').value = '';
-    document.getElementById('reg-name').value = '';
-    document.getElementById('reg-weburl').value = '';
-    closeDrawer('register');
-    setTimeout(() => load(), 800);
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
+      throw new Error(err.message || `HTTP ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let currentEvent = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (line.startsWith('event:')) {
+          currentEvent = line.slice(6).trim();
+        } else if (line.startsWith('data:')) {
+          const data = JSON.parse(line.slice(5).trim());
+          if (currentEvent === 'step') {
+            stepStatuses[data.step] = data.status;
+            renderRegSteps(stepStatuses);
+          } else if (currentEvent === 'complete') {
+            const ok = data.status === 'ACTIVE';
+            toast(ok ? '등록 완료' : '등록 실패', `${data.name} — ${data.status}`, ok ? 'ok' : 'err');
+            if (ok) {
+              document.getElementById('reg-url').value = '';
+              document.getElementById('reg-name').value = '';
+              document.getElementById('reg-weburl').value = '';
+              setTimeout(() => { closeDrawer('register'); load(); }, 1200);
+            }
+          } else if (currentEvent === 'error') {
+            toast('등록 실패', data.message, 'err');
+          }
+          currentEvent = '';
+        }
+      }
+    }
   } catch(e) {
     toast('등록 실패', e.message, 'err');
   } finally {
     btn.disabled = false;
-    btn.textContent = '등록';
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> 등록';
+    // 실패 시 steps 유지, 성공 후엔 drawer가 닫히므로 리셋만
+    setTimeout(() => { stepsEl.style.display = 'none'; renderRegSteps({}); }, 3000);
   }
 }
 

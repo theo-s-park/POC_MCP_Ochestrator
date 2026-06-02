@@ -2,9 +2,14 @@ package sevin.mcporchestrator.server.presentation;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.io.IOException;
 import org.springframework.web.client.RestClient;
 import sevin.mcporchestrator.app.domain.McpAppEntity;
 import sevin.mcporchestrator.app.infrastructure.McpAppRepository;
@@ -27,6 +32,8 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/mcp/servers")
 public class McpServerController {
 
+    private static final Logger log = LoggerFactory.getLogger(McpServerController.class);
+
     private final McpServerService service;
     private final McpAppRepository mcpAppRepository;
     private final McpServerRegistry registry;
@@ -42,6 +49,30 @@ public class McpServerController {
         this.restClient = RestClient.builder()
             .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory())
             .build();
+    }
+
+    @PostMapping(value = "/register-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter registerStream(@RequestBody RegisterRequest request) {
+        SseEmitter emitter = new SseEmitter(120_000L);
+        Thread.ofVirtual().start(() -> {
+            try {
+                McpServerRecord result = service.registerWithStream(
+                    request.getUrl(), request.getName(), request.getWebAppUrl(), request.getType(),
+                    step -> sendSse(emitter, "step", Map.of("step", step.step(), "status", step.status()))
+                );
+                sendSse(emitter, "complete", Map.of(
+                    "serverId", result.getServerId(),
+                    "status",   result.getStatus().name(),
+                    "name",     result.getName()
+                ));
+                emitter.complete();
+            } catch (Exception e) {
+                log.error("[SSE] register error: {}", e.getMessage(), e);
+                sendSse(emitter, "error", Map.of("message", e.getMessage() != null ? e.getMessage() : "등록 오류"));
+                emitter.complete();
+            }
+        });
+        return emitter;
     }
 
     @PostMapping("/register")
@@ -161,6 +192,14 @@ public class McpServerController {
         }
 
         return ResponseEntity.ok(objectMapper.readTree(body));
+    }
+
+    private void sendSse(SseEmitter emitter, String eventName, Object data) {
+        try {
+            emitter.send(SseEmitter.event().name(eventName).data(objectMapper.writeValueAsString(data)));
+        } catch (IOException e) {
+            log.warn("[SSE] send failed: {}", e.getMessage());
+        }
     }
 
     @Data
