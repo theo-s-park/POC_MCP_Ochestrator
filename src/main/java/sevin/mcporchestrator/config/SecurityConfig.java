@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -25,16 +26,22 @@ public class SecurityConfig {
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     /**
-     * - /api/lambda/** : ROLE_ADMIN 전용 (Lambda 인프라 생성/배포)
-     * - 그 외          : 공개 (기존 등록/관리/퍼블릭 API, 백오피스, 웹)
-     * - /api/** 미인증 : 302 리다이렉트 대신 401 반환 (fetch/SSE가 로그인 HTML을 받지 않도록)
-     * - CSRF 비활성화  : 세션 쿠키 기반 동일 출처 fetch를 위해 (POC)
+     * 쓰기(등록·삭제·수정·생성) API → ADMIN 전용
+     * 읽기(조회) API 및 화면 → permitAll
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
+                // Lambda 인프라 생성/배포
                 .requestMatchers("/api/lambda/**").hasRole("ADMIN")
+                // 서버 등록·삭제·새로고침
+                .requestMatchers(HttpMethod.POST,   "/api/mcp/servers/register", "/api/mcp/servers/register-stream").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/mcp/servers/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST,   "/api/mcp/servers/*/refresh").hasRole("ADMIN")
+                // 앱 메타데이터 변경
+                .requestMatchers(HttpMethod.PATCH,  "/api/mcp/apps/**").hasRole("ADMIN")
+                // 나머지 (GET 조회, 화면, 로그인) 모두 공개
                 .anyRequest().permitAll()
             )
             .formLogin(form -> form
