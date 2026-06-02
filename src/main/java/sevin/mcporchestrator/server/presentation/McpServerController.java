@@ -15,6 +15,7 @@ import sevin.mcporchestrator.app.domain.McpAppEntity;
 import sevin.mcporchestrator.app.infrastructure.McpAppRepository;
 import sevin.mcporchestrator.common.exception.ErrorCode;
 import sevin.mcporchestrator.common.exception.McpException;
+import sevin.mcporchestrator.lambda.application.McpKeyService;
 import sevin.mcporchestrator.server.application.McpServerRecord;
 import sevin.mcporchestrator.server.application.McpServerService;
 import sevin.mcporchestrator.server.exception.ServerNotFoundException;
@@ -38,14 +39,17 @@ public class McpServerController {
     private final McpAppRepository mcpAppRepository;
     private final McpServerRegistry registry;
     private final ObjectMapper objectMapper;
+    private final McpKeyService mcpKeyService;
     private final RestClient restClient;
 
     public McpServerController(McpServerService service, McpAppRepository mcpAppRepository,
-                               McpServerRegistry registry, ObjectMapper objectMapper) {
+                               McpServerRegistry registry, ObjectMapper objectMapper,
+                               McpKeyService mcpKeyService) {
         this.service = service;
         this.mcpAppRepository = mcpAppRepository;
         this.registry = registry;
         this.objectMapper = objectMapper;
+        this.mcpKeyService = mcpKeyService;
         this.restClient = RestClient.builder()
             .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory())
             .build();
@@ -183,10 +187,14 @@ public class McpServerController {
             Map<String, Object> req = Map.of(
                 "jsonrpc", "2.0", "id", 1, "method", method, "params", Map.of()
             );
-            body = restClient.post()
+            var spec = restClient.post()
                 .uri(server.getUrl() + "/mcp")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(objectMapper.writeValueAsString(req))
+                .contentType(MediaType.APPLICATION_JSON);
+            if (server.getMcpKeyEncrypted() != null) {
+                try { spec = spec.header("X-MCP-KEY", mcpKeyService.decrypt(server.getMcpKeyEncrypted())); }
+                catch (Exception ignored) {}
+            }
+            body = spec.body(objectMapper.writeValueAsString(req))
                 .retrieve()
                 .body(String.class);
         }
