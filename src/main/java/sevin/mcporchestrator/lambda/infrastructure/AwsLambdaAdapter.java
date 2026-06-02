@@ -65,14 +65,25 @@ public class AwsLambdaAdapter {
 
     /**
      * Function URL을 활성화하고 URL을 반환한다.
-     * 퍼블릭 접근을 허용하기 위해 lambda:InvokeFunctionUrl 권한도 함께 추가한다.
+     * 운영팀 가이드에 따라 두 가지 권한을 함께 추가한다:
+     *   1) lambda:InvokeFunctionUrl — Function URL HTTP 공개 접근
+     *   2) lambda:InvokeFunction + invoked-via-function-url — Function URL 경유 실행 허용
      */
     public String enableFunctionUrl(String functionName) {
-        // 퍼블릭 인증 없이 호출 가능하도록 권한 추가
+        // 3-1) InvokeFunctionUrl — Function URL 공개 접근
         lambdaClient.addPermission(AddPermissionRequest.builder()
             .functionName(functionName)
-            .statementId("AllowPublicInvoke-" + UUID.randomUUID().toString().substring(0, 8))
+            .statementId("FunctionURLAllowPublicAccess")
             .action("lambda:InvokeFunctionUrl")
+            .principal("*")
+            .functionUrlAuthType(FunctionUrlAuthType.NONE)
+            .build());
+
+        // 3-2) InvokeFunction via Function URL — 실제 실행 권한
+        lambdaClient.addPermission(AddPermissionRequest.builder()
+            .functionName(functionName)
+            .statementId("FunctionURLAllowInvokeAction")
+            .action("lambda:InvokeFunction")
             .principal("*")
             .functionUrlAuthType(FunctionUrlAuthType.NONE)
             .build());
