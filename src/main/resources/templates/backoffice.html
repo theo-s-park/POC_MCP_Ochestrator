@@ -154,7 +154,7 @@ body::before {
 .drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,.25); backdrop-filter:blur(1px); z-index:150; opacity:0; pointer-events:none; transition:opacity .25s; }
 .drawer-overlay.open { opacity:1; pointer-events:all; }
 .drawer { position:fixed; left:var(--sidebar-w); top:0; height:100vh; width:480px; background:var(--surface); border-right:1px solid var(--border); box-shadow:8px 0 40px rgba(0,0,0,.14); z-index:200; transform:translateX(calc(-100% - var(--sidebar-w))); transition:transform .26s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; overflow:hidden; }
-.drawer.wide { width:720px; }
+.drawer.wide { width:calc(100vw - var(--sidebar-w)); max-width:1400px; }
 .drawer.open { transform:translateX(0); }
 .drawer-head { padding:18px 20px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; flex-shrink:0; }
 .drawer-title { font-family:var(--font-head); font-size:15px; font-weight:700; flex:1; }
@@ -175,7 +175,7 @@ button.nav-item { background:transparent; border:none; width:100%; text-align:le
 .reg-row2 { display:grid; grid-template-columns:110px 1fr; gap:10px; }
 
 /* Lambda Create Tab */
-.create-layout { display:grid; grid-template-columns:380px 1fr; gap:24px; align-items:start; }
+.create-layout { display:grid; grid-template-columns:440px 1fr; gap:28px; align-items:start; }
 @media (max-width: 900px) { .create-layout { grid-template-columns:1fr; } }
 .create-form-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:0 1px 4px rgba(0,0,0,.05); overflow:hidden; }
 .card-header { padding:18px 20px 14px; border-bottom:1px solid var(--border); }
