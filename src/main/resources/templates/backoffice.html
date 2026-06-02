@@ -840,6 +840,9 @@ async function registerServer() {
       body: JSON.stringify({ url, name: name || null, webAppUrl: webAppUrl || null, type }),
     });
 
+    if (response.status === 401 || response.status === 403) {
+      toast('로그인 필요', '어드민 로그인 후 등록해주세요', 'err'); return;
+    }
     if (!response.ok) {
       const err = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
       throw new Error(err.message || `HTTP ${response.status}`);
