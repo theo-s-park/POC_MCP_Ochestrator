@@ -79,7 +79,6 @@ public class McpServerService {
                 log.warn("[Registry] required collector {} returned {} - marking REGISTRATION_FAILED: {}",
                     collector.method(), result, serverId);
                 registry.updateStatus(serverId, ServerStatus.REGISTRATION_FAILED);
-                ensureApp(serverId, existing.isPresent(), null);
                 return registry.find(serverId).orElse(record);
             }
         }
