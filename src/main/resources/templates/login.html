@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>Admin Login — MCP Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#f5f7fa; --surface:#ffffff; --surface2:#f3f4f6;
+  --border:rgba(0,0,0,0.08); --border-hi:rgba(0,0,0,0.16);
+  --text:#111827; --muted:#6b7280; --subtle:#c4c8d0;
+  --accent:#4f46e5; --accent-d:rgba(79,70,229,0.08); --red:#dc2626;
+  --font-head:'Syne',sans-serif; --font-body:'DM Sans',sans-serif; --font-mono:'JetBrains Mono',monospace;
+}
+body { background:var(--bg); color:var(--text); font-family:var(--font-body); font-size:14px; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+body::before {
+  content:''; position:fixed; inset:0; z-index:-1;
+  background-image:radial-gradient(circle,rgba(0,0,0,0.04) 1px,transparent 1px);
+  background-size:28px 28px;
+}
+.login-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:360px; max-width:92vw; box-shadow:0 16px 48px rgba(0,0,0,0.10); overflow:hidden; }
+.login-head { padding:32px 32px 8px; }
+.login-logo { font-family:var(--font-head); font-size:20px; font-weight:800; letter-spacing:-.3px; }
+.login-logo span { color:var(--accent); }
+.login-sub { color:var(--muted); font-size:13px; margin-top:6px; }
+.login-body { padding:24px 32px 32px; display:flex; flex-direction:column; gap:14px; }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+.field input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 13px; color:var(--text); font-family:var(--font-body); font-size:14px; outline:none; transition:border .15s; }
+.field input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-d); }
+.btn-login { background:var(--accent); color:#fff; border:none; border-radius:8px; padding:11px; font-size:14px; font-weight:600; cursor:pointer; font-family:var(--font-body); transition:background .15s; margin-top:4px; }
+.btn-login:hover { background:#4338ca; }
+.err-banner { background:rgba(220,38,38,0.07); border:1px solid rgba(220,38,38,.2); color:var(--red); border-radius:8px; padding:10px 13px; font-size:12.5px; }
+.back-link { text-align:center; margin-top:4px; }
+.back-link a { color:var(--muted); font-size:12px; text-decoration:none; }
+.back-link a:hover { color:var(--text); }
+</style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="login-head">
+      <div class="login-logo">MCP <span>통합 관리 서버</span></div>
+      <div class="login-sub">어드민 로그인 — Lambda 인프라 관리</div>
+    </div>
+    <form class="login-body" method="post" action="/login">
+      <div class="err-banner" th:if="${param.error}">아이디 또는 비밀번호가 올바르지 않습니다.</div>
+      <div class="err-banner" th:if="${param.logout}" style="background:rgba(22,163,74,.07);border-color:rgba(22,163,74,.2);color:#16a34a">로그아웃되었습니다.</div>
+      <div class="field">
+        <label>Username</label>
+        <input type="text" name="username" placeholder="admin" autofocus autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn-login">로그인</button>
+      <div class="back-link"><a href="/backoffice">← 백오피스로 돌아가기</a></div>
+    </form>
+  </div>
+</body>
+</html>

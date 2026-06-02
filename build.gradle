@@ -22,6 +22,8 @@ dependencyManagement {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
     implementation 'org.springframework.ai:spring-ai-starter-mcp-server-webmvc'
     implementation 'org.springframework.ai:spring-ai-starter-mcp-client'
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'

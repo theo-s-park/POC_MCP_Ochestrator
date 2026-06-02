@@ -88,10 +88,11 @@ class LambdaInfraServiceTest {
 
         service.create("test", null, null, null);
 
-        // null runtime → JAVA_21 base image 사용 확인
+        // null runtime → JAVA_21 base image를 placeholder로 push, Lambda는 private ECR 이미지로 생성
+        verify(ecrAdapter).pushPlaceholderImage(anyString(), contains("java:21"));
         verify(lambdaAdapter).createFunction(
             eq("test"),
-            contains("java:21"),
+            contains("lambda/test:latest"),
             anyString(), anyInt(), anyInt()
         );
     }
@@ -107,7 +108,9 @@ class LambdaInfraServiceTest {
 
         service.create("test", LambdaRuntime.PYTHON_312, 60, 1024);
 
-        verify(lambdaAdapter).createFunction(eq("test"), contains("python:3.12"),
+        // PYTHON_312 base image를 placeholder로 push, Lambda는 ECR 이미지 + 지정 timeout/memory로 생성
+        verify(ecrAdapter).pushPlaceholderImage(anyString(), contains("python:3.12"));
+        verify(lambdaAdapter).createFunction(eq("test"), contains("lambda/test:latest"),
             anyString(), eq(60), eq(1024));
     }
 

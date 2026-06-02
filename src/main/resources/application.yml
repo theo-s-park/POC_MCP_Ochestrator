@@ -53,6 +53,10 @@ server:
       charset: UTF-8
       force: true
 
+admin:
+  username: ${ADMIN_USERNAME:admin}
+  password: ${ADMIN_PASSWORD:}
+
 aws:
   region: ${AWS_REGION:ap-northeast-2}
   lambda:

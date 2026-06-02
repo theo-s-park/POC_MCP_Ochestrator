@@ -9,6 +9,9 @@ public class WebController {
     @GetMapping({"/", "/backoffice"})
     public String backoffice() { return "backoffice"; }
 
+    @GetMapping("/login")
+    public String login() { return "login"; }
+
     @GetMapping("/web")
     public String web() { return "web"; }
 }
