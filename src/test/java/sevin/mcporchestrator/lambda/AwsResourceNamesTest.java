@@ -11,22 +11,22 @@ class AwsResourceNamesTest {
     private static final String REGION = "ap-northeast-2";
 
     @Test
-    void lambdaFunctionName_suffixedWithLambda() {
+    void lambdaFunctionName_prefixedWithTestMcp() {
         var names = new AwsResourceNames("hwp-converter", ACCOUNT_ID, REGION);
-        assertThat(names.lambdaFunctionName()).isEqualTo("hwp-converter-lambda");
+        assertThat(names.lambdaFunctionName()).isEqualTo("test-mcp-hwp-converter");
     }
 
     @Test
-    void ecrRepoName_suffixedWithEcr() {
+    void ecrRepoName_prefixedWithTestMcp() {
         var names = new AwsResourceNames("hwp-converter", ACCOUNT_ID, REGION);
-        assertThat(names.ecrRepoName()).isEqualTo("hwp-converter-ecr");
+        assertThat(names.ecrRepoName()).isEqualTo("test-mcp-hwp-converter");
     }
 
     @Test
     void ecrImageUri_correctlyComposed() {
         var names = new AwsResourceNames("hwp-converter", ACCOUNT_ID, REGION);
         assertThat(names.ecrImageUri())
-            .isEqualTo("592624331629.dkr.ecr.ap-northeast-2.amazonaws.com/hwp-converter-ecr:latest");
+            .isEqualTo("592624331629.dkr.ecr.ap-northeast-2.amazonaws.com/test-mcp-hwp-converter:latest");
     }
 
     @Test
@@ -36,7 +36,7 @@ class AwsResourceNamesTest {
         assertThat(bucket).hasSizeLessThanOrEqualTo(63);
         assertThat(bucket).matches("[a-z0-9-]+");
         assertThat(bucket).contains(ACCOUNT_ID);
-        assertThat(bucket).contains("cf-files");
+        assertThat(bucket).startsWith("test-mcp-");
     }
 
     @Test

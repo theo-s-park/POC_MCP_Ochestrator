@@ -1070,7 +1070,7 @@ function updatePreview() {
   const name = document.getElementById('lm-name').value.trim();
   const prev = document.getElementById('lm-name-preview');
   if (!name) { prev.textContent = ''; return; }
-  prev.textContent = `ECR: ${name}-ecr  ·  Lambda: ${name}-lambda  ·  S3: ${name}-cf-files  ·  CF: ${name}-cf`;
+  prev.textContent = `ECR/Lambda: test-mcp-${name}  ·  S3: test-mcp-${name}-{accountId}  ·  CF: test-mcp-${name}`;
 }
 
 function esc(s) {

@@ -2,22 +2,24 @@ package sevin.mcporchestrator.lambda.domain;
 
 /**
  * Lambda 인프라 생성 시 사용할 AWS 리소스 이름 규칙.
- * input name 하나로 모든 리소스 이름을 일관되게 파생시킨다.
+ * 모든 리소스에 "test-mcp-" prefix를 붙여 IAM 정책에서 test-mcp-* 와일드카드로 일괄 제어한다.
  *
  * 예) input "aspyn-test" →
- *   Lambda:     aspyn-test-lambda
- *   ECR:        aspyn-test-ecr
- *   S3:         aspyn-test-cf-files-{accountId}
- *   CloudFront: description "aspyn-test-cf"
+ *   Lambda:     test-mcp-aspyn-test
+ *   ECR:        test-mcp-aspyn-test
+ *   S3:         test-mcp-aspyn-test-{accountId}
+ *   CloudFront: description "test-mcp-aspyn-test"
  */
 public record AwsResourceNames(String functionName, String accountId, String region) {
 
+    private static final String PREFIX = "test-mcp-";
+
     public String lambdaFunctionName() {
-        return functionName + "-lambda";
+        return PREFIX + functionName;
     }
 
     public String ecrRepoName() {
-        return functionName + "-ecr";
+        return PREFIX + functionName;
     }
 
     public String ecrImageUri() {
@@ -29,7 +31,7 @@ public record AwsResourceNames(String functionName, String accountId, String reg
      * AWS 규칙: 3-63자, 소문자+숫자+하이픈만 허용.
      */
     public String s3BucketName() {
-        String raw = (functionName + "-cf-files-" + accountId)
+        String raw = (PREFIX + functionName + "-" + accountId)
             .toLowerCase()
             .replaceAll("[^a-z0-9-]", "-")
             .replaceAll("-{2,}", "-");
@@ -37,7 +39,7 @@ public record AwsResourceNames(String functionName, String accountId, String reg
     }
 
     public String cloudFrontDescription() {
-        return functionName + "-cf";
+        return PREFIX + functionName;
     }
 
     /**
