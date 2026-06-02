@@ -693,6 +693,7 @@ async function save(id, tools) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+    if (res.status === 401) { toast('로그인 필요', '어드민 로그인 후 이용해주세요', 'err'); return; }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     toast('저장 완료', displayName || id, 'ok');
     setTimeout(() => load(), 800);
@@ -892,6 +893,7 @@ async function registerServer() {
 async function refreshServer(serverId, serverName) {
   try {
     const res = await fetch(`/api/mcp/servers/${serverId}/refresh`, { method: 'POST' });
+    if (res.status === 401) { toast('로그인 필요', '어드민 로그인 후 이용해주세요', 'err'); return; }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     toast('새로고침 완료', serverName, 'ok');
     setTimeout(() => load(), 800);
@@ -904,6 +906,7 @@ async function deleteServer(serverId, serverName) {
   if (!confirm(`"${serverName}" 서버를 삭제하시겠습니까?\n연결된 앱 메타데이터도 함께 삭제됩니다.`)) return;
   try {
     const res = await fetch(`/api/mcp/servers/${serverId}`, { method: 'DELETE' });
+    if (res.status === 401) { toast('로그인 필요', '어드민 로그인 후 이용해주세요', 'err'); return; }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     toast('삭제 완료', serverName, 'ok');
     setTimeout(() => load(), 800);
