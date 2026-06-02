@@ -39,8 +39,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST,   "/api/mcp/servers/register", "/api/mcp/servers/register-stream").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/mcp/servers/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST,   "/api/mcp/servers/*/refresh").hasRole("ADMIN")
-                // 앱 메타데이터 변경
+                // 앱/툴 메타데이터 변경
                 .requestMatchers(HttpMethod.PATCH,  "/api/mcp/apps/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH,  "/api/mcp/tools/**").hasRole("ADMIN")
                 // 나머지 (GET 조회, 화면, 로그인) 모두 공개
                 .anyRequest().permitAll()
             )

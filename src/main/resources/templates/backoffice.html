@@ -547,19 +547,31 @@ function renderServiceTypeOptions(selected) {
 function renderToolRows(appId, tools) {
   if (!tools || !tools.length) return '';
   return tools.map(t => `
-    <div class="tool-row">
-      <div>
-        <div class="tool-name">${t.toolName}</div>
-        <div class="tool-credit-info" id="${appId}-${t.toolName}-creditInfo">${t.serviceType ? `${t.serviceType} · ${t.deductCredit}cr` : '— not set —'}</div>
+    <div class="tool-row" style="flex-direction:column;align-items:stretch;gap:8px;padding:12px 14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div class="tool-name">${t.toolName}</div>
+          <div class="tool-credit-info" id="${appId}-${t.toolName}-creditInfo">${t.serviceType ? `${t.serviceType} · ${t.deductCredit}cr` : '— not set —'}</div>
+        </div>
+        <select id="${appId}-${t.toolName}-st" onchange="onToolServiceTypeChange('${appId}','${t.toolName}')" style="width:180px">
+          <option value="">— 선택 안 함 —</option>
+          ${renderServiceTypeOptions(t.serviceType)}
+        </select>
+        <label class="toggle" title="노출 여부 (하위)">
+          <input type="checkbox" id="${appId}-${t.toolName}-vis" ${t.visible !== false ? 'checked' : ''}>
+          <span class="toggle-slider"></span>
+        </label>
       </div>
-      <select id="${appId}-${t.toolName}-st" onchange="onToolServiceTypeChange('${appId}','${t.toolName}')">
-        <option value="">— 선택 안 함 —</option>
-        ${renderServiceTypeOptions(t.serviceType)}
-      </select>
-      <label class="toggle" title="노출 여부">
-        <input type="checkbox" id="${appId}-${t.toolName}-vis" ${t.visible !== false ? 'checked' : ''}>
-        <span class="toggle-slider"></span>
-      </label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field" style="margin:0">
+          <label>표시 이름</label>
+          <input type="text" id="${appId}-${t.toolName}-displayName" value="${esc(t.displayName||'')}" placeholder="${t.toolName}">
+        </div>
+        <div class="field" style="margin:0">
+          <label>설명</label>
+          <input type="text" id="${appId}-${t.toolName}-desc" value="${esc(t.description||'')}" placeholder="툴 설명">
+        </div>
+      </div>
     </div>`).join('');
 }
 
@@ -624,6 +636,10 @@ function renderApp(app) {
         <input type="text" id="${app.id}-displayName" value="${app.displayName || ''}" placeholder="노출용 이름">
       </div>
       <div class="field">
+        <label>Category</label>
+        <input type="text" id="${app.id}-category" value="${app.category || ''}" placeholder="예: 문서, 검색, 개발">
+      </div>
+      <div class="field">
         <label>Thumbnail URL</label>
         <input type="text" id="${app.id}-thumbnail" value="${app.thumbnail || ''}" placeholder="https://...">
       </div>
@@ -636,10 +652,10 @@ function renderApp(app) {
         <input type="text" id="${app.id}-redirectUri" value="${app.redirectUri || ''}" placeholder="https://...">
       </div>
       <div class="field">
-        <label>Visible</label>
+        <label>Visible (전체)</label>
         <div class="toggle-row">
           <label class="toggle">
-            <input type="checkbox" id="${app.id}-isVisible" ${app.isVisible ? 'checked' : ''} ${!isActive ? 'disabled' : ''} onchange="onVisibleChange(event,'${app.id}',${JSON.stringify(app.tools||[]).replace(/"/g,'&quot;')})">
+            <input type="checkbox" id="${app.id}-isVisible" ${app.isVisible ? 'checked' : ''} ${!isActive ? 'disabled' : ''}>
             <span class="toggle-slider"></span>
           </label>
           <span style="font-size:12px;color:var(--muted)">${!isActive ? '서버 ACTIVE 상태에서만 노출 가능' : '앱 전체 노출'}</span>
@@ -652,7 +668,7 @@ function renderApp(app) {
     </div>
     ${app.tools && app.tools.length ? `
     <div class="tools-section">
-      <div class="tools-section-title">Tools — service type &amp; visibility</div>
+      <div class="tools-section-title">Tools</div>
       ${renderToolRows(app.id, app.tools)}
     </div>` : ''}
     <div class="app-footer">
@@ -667,26 +683,32 @@ function renderApp(app) {
 async function save(id, tools) {
   const displayName = document.getElementById(`${id}-displayName`).value || null;
 
-  const toolCredits = {};
+  const toolsMap = {};
   (tools || []).forEach(t => {
-    const sel = document.getElementById(`${id}-${t.toolName}-st`);
-    const vis = document.getElementById(`${id}-${t.toolName}-vis`);
+    const sel  = document.getElementById(`${id}-${t.toolName}-st`);
+    const vis  = document.getElementById(`${id}-${t.toolName}-vis`);
+    const dn   = document.getElementById(`${id}-${t.toolName}-displayName`);
+    const desc = document.getElementById(`${id}-${t.toolName}-desc`);
     if (!sel) return;
-    const st = sel.value || null;
     const opt = sel.selectedOptions[0];
-    const credit = opt && opt.dataset.credit ? parseInt(opt.dataset.credit) : 0;
-    const visible = vis ? vis.checked : true;
-    toolCredits[t.toolName] = { serviceType: st, deductCredit: credit, visible };
+    toolsMap[t.toolName] = {
+      displayName:  dn   ? (dn.value || null)   : null,
+      description:  desc ? (desc.value || null)  : null,
+      serviceType:  sel.value || null,
+      deductCredit: opt && opt.dataset.credit ? parseInt(opt.dataset.credit) : 0,
+      visible:      vis ? vis.checked : true,
+    };
   });
 
   const body = {
     displayName,
-    thumbnail:    document.getElementById(`${id}-thumbnail`).value || null,
-    clientId:     document.getElementById(`${id}-clientId`).value || null,
-    redirectUri:  document.getElementById(`${id}-redirectUri`).value || null,
-    description:  document.getElementById(`${id}-description`).value || null,
-    isVisible:    document.getElementById(`${id}-isVisible`).checked,
-    toolCredits:  Object.keys(toolCredits).length ? toolCredits : null,
+    thumbnail:   document.getElementById(`${id}-thumbnail`).value || null,
+    clientId:    document.getElementById(`${id}-clientId`).value || null,
+    redirectUri: document.getElementById(`${id}-redirectUri`).value || null,
+    description: document.getElementById(`${id}-description`).value || null,
+    category:    document.getElementById(`${id}-category`).value || null,
+    isVisible:   document.getElementById(`${id}-isVisible`).checked,
+    tools:       Object.keys(toolsMap).length ? toolsMap : null,
   };
   try {
     const res = await fetch(`/api/mcp/apps/${id}`, {

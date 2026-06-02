@@ -1,12 +1,15 @@
 package sevin.mcporchestrator.app.presentation;
 
 import sevin.mcporchestrator.app.domain.McpAppEntity;
-import sevin.mcporchestrator.app.domain.ToolCreditInfo;
+import sevin.mcporchestrator.app.domain.McpToolAppEntity;
 import sevin.mcporchestrator.server.application.McpServerRecord;
+import sevin.mcporchestrator.server.domain.McpTool;
 import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public record McpAppPublicView(
     String id,
@@ -14,6 +17,7 @@ public record McpAppPublicView(
     String displayName,
     String description,
     String thumbnail,
+    String category,
     String mcpUrl,
     String clientId,
     String redirectUri,
@@ -21,6 +25,7 @@ public record McpAppPublicView(
 ) {
     public record ToolSummary(
         String name,
+        String displayName,
         String description,
         JsonNode inputSchema,
         String serviceType,
@@ -29,25 +34,31 @@ public record McpAppPublicView(
     ) {}
 
     public static McpAppPublicView of(McpAppEntity app, McpServerRecord server,
-                                      Map<String, ToolCreditInfo> toolCredits) {
+                                      List<McpToolAppEntity> toolApps) {
         String displayName = app.getDisplayName() != null ? app.getDisplayName()
             : (server != null ? server.getName() : "(unknown)");
 
-        List<ToolSummary> tools = server == null || server.getTools() == null ? List.of() :
-            server.getTools().stream()
-                .filter(t -> {
-                    ToolCreditInfo info = toolCredits != null ? toolCredits.get(t.getName()) : null;
-                    return info == null || info.visible();
-                })
+        Map<String, McpToolAppEntity> toolAppMap = toolApps == null ? Map.of() :
+            toolApps.stream().collect(Collectors.toMap(McpToolAppEntity::getToolName, Function.identity()));
+
+        Map<String, McpTool> mcpToolMap = (server == null || server.getTools() == null) ? Map.of() :
+            server.getTools().stream().collect(Collectors.toMap(McpTool::getName, Function.identity()));
+
+        List<ToolSummary> tools = toolApps == null ? List.of() :
+            toolApps.stream()
+                .filter(McpToolAppEntity::isVisible)
                 .map(t -> {
-                    ToolCreditInfo info = toolCredits != null ? toolCredits.get(t.getName()) : null;
+                    McpTool mcpTool = mcpToolMap.get(t.getToolName());
                     return new ToolSummary(
-                        t.getName(),
-                        t.getDescription(),
-                        t.getInputSchema(),
-                        info != null ? info.serviceType() : null,
-                        info != null ? info.deductCredit() : 0,
-                        t.getWebUrl()
+                        t.getToolName(),
+                        t.getDisplayName() != null ? t.getDisplayName() : t.getToolName(),
+                        t.getDescription() != null ? t.getDescription()
+                            : (mcpTool != null ? mcpTool.getDescription() : null),
+                        mcpTool != null ? mcpTool.getInputSchema() : null,
+                        t.getServiceType(),
+                        t.getDeductCredit(),
+                        t.getWebUrl() != null ? t.getWebUrl()
+                            : (mcpTool != null ? mcpTool.getWebUrl() : null)
                     );
                 }).toList();
 
@@ -57,6 +68,7 @@ public record McpAppPublicView(
             displayName,
             app.getDescription(),
             app.getThumbnail(),
+            app.getCategory(),
             server != null ? server.getUrl() : null,
             app.getClientId(),
             app.getRedirectUri(),

@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sevin.mcporchestrator.app.application.McpAppService;
 import sevin.mcporchestrator.app.infrastructure.McpAppRepository;
 import sevin.mcporchestrator.app.domain.McpAppEntity;
 import sevin.mcporchestrator.server.exception.ServerNotFoundException;
@@ -29,11 +30,14 @@ public class McpServerService {
     private final McpServerRegistry registry;
     private final List<McpCapabilityCollector> collectors;
     private final McpAppRepository mcpAppRepository;
+    private final McpAppService mcpAppService;
 
-    public McpServerService(McpServerRegistry registry, List<McpCapabilityCollector> collectors, McpAppRepository mcpAppRepository) {
+    public McpServerService(McpServerRegistry registry, List<McpCapabilityCollector> collectors,
+                            McpAppRepository mcpAppRepository, McpAppService mcpAppService) {
         this.registry = registry;
         this.collectors = collectors;
         this.mcpAppRepository = mcpAppRepository;
+        this.mcpAppService = mcpAppService;
     }
 
     public McpServerRecord register(String url, String name, String webAppUrl, ServerType type) {
@@ -102,11 +106,19 @@ public class McpServerService {
                     .orElse(null))
             .orElse(null);
 
-        ensureApp(serverId, existing.isPresent(), autoThumbnail);
+        McpAppEntity appEntity = ensureApp(serverId, existing.isPresent(), autoThumbnail);
+
+        // ACTIVE 서버의 tools → McpToolApp 동기화
+        registry.find(serverId).ifPresent(s -> {
+            if (s.getTools() != null) {
+                mcpAppService.syncToolApps(appEntity.getId(), s.getTools());
+            }
+        });
+
         return registry.find(serverId).orElse(record);
     }
 
-    private void ensureApp(String serverId, boolean existing, String autoThumbnail) {
+    private McpAppEntity ensureApp(String serverId, boolean existing, String autoThumbnail) {
         McpAppEntity app = mcpAppRepository.findByMcpServerId(serverId)
             .orElse(McpAppEntity.builder()
                 .id(UUID.randomUUID().toString())
@@ -118,6 +130,7 @@ public class McpServerService {
         }
         mcpAppRepository.save(app);
         log.info("[McpApp] {} for server {} (thumbnail={})", existing ? "updated" : "created", serverId, autoThumbnail);
+        return app;
     }
 
     private void emit(Consumer<HandshakeStep> cb, String step, String status) {

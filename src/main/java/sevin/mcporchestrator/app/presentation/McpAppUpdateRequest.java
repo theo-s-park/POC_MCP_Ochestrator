@@ -1,7 +1,6 @@
 package sevin.mcporchestrator.app.presentation;
 
 import lombok.Data;
-import sevin.mcporchestrator.app.domain.ToolCreditInfo;
 
 import java.util.Map;
 
@@ -9,11 +8,20 @@ import java.util.Map;
 public class McpAppUpdateRequest {
     private String displayName;
     private String thumbnail;
-    private String serviceType;
     private String clientId;
     private String redirectUri;
-    private Integer credit;
     private String description;
+    private String category;
     private Boolean isVisible;
-    private Map<String, ToolCreditInfo> toolCredits;
+    // toolName → per-tool update
+    private Map<String, ToolUpdate> tools;
+
+    @Data
+    public static class ToolUpdate {
+        private String displayName;
+        private String description;
+        private String serviceType;
+        private Integer deductCredit;
+        private Boolean visible;
+    }
 }
