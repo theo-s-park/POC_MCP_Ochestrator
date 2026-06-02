@@ -283,7 +283,7 @@ button.nav-item { background:transparent; border:none; width:100%; text-align:le
 <div class="drawer-overlay" id="drawer-overlay" onclick="closeAllDrawers()"></div>
 
 <!-- ── Drawer: 서버 등록 ── -->
-<div class="drawer" id="drawer-register">
+<div class="drawer wide" id="drawer-register">
   <div class="drawer-head">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
     <div class="drawer-title">서버 등록</div>
@@ -292,42 +292,51 @@ button.nav-item { background:transparent; border:none; width:100%; text-align:le
     </button>
   </div>
   <div class="drawer-body">
-    <p style="font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.6">Lambda Function URL을 입력하면 관리 서버가 자동으로 핸드셰이킹합니다.<br>등록 후 <code>ping → tools/list → resources/list</code> 순으로 진행해 ACTIVE 상태로 전환됩니다.</p>
-    <div class="reg-form">
-      <div class="field">
-        <label>Lambda Function URL</label>
-        <input type="text" id="reg-url" placeholder="https://xxx.lambda-url.ap-northeast-2.on.aws" style="font-family:var(--font-mono);font-size:12px">
-      </div>
-      <div class="field">
-        <label>CloudFront URL <span style="font-weight:400;opacity:.6">(선택)</span></label>
-        <input type="text" id="reg-weburl" placeholder="https://d1234abcd.cloudfront.net" style="font-family:var(--font-mono);font-size:12px">
-      </div>
-      <div class="reg-row2">
-        <div class="field">
-          <label>타입</label>
-          <select id="reg-type" style="appearance:none;background:var(--accent-d);background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 10px center;border:1px solid rgba(79,70,229,.25);border-radius:6px;padding:8px 28px 8px 12px;color:var(--accent);font-family:var(--font-mono);font-size:12px;font-weight:600;outline:none;cursor:pointer;transition:all .15s;width:100%" onchange="onRegTypeChange(this)">
-            <option value="MCP">MCP</option>
-            <option value="WEBAPP">WEBAPP</option>
-          </select>
+    <div style="display:grid;grid-template-columns:400px 1fr;gap:28px;align-items:start">
+      <!-- 왼쪽: 입력 폼 -->
+      <div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.6">Lambda Function URL을 입력하면 관리 서버가 자동으로 핸드셰이킹합니다.<br>등록 후 <code>ping → tools/list → resources/list</code> 순으로 진행해 ACTIVE 상태로 전환됩니다.</p>
+        <div class="reg-form">
+          <div class="field">
+            <label>Lambda Function URL</label>
+            <input type="text" id="reg-url" placeholder="https://xxx.lambda-url.ap-northeast-2.on.aws" style="font-family:var(--font-mono);font-size:12px">
+          </div>
+          <div class="field">
+            <label>CloudFront URL <span style="font-weight:400;opacity:.6">(선택)</span></label>
+            <input type="text" id="reg-weburl" placeholder="https://d1234abcd.cloudfront.net" style="font-family:var(--font-mono);font-size:12px">
+          </div>
+          <div class="reg-row2">
+            <div class="field">
+              <label>타입</label>
+              <select id="reg-type" style="appearance:none;background:var(--accent-d);background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 10px center;border:1px solid rgba(79,70,229,.25);border-radius:6px;padding:8px 28px 8px 12px;color:var(--accent);font-family:var(--font-mono);font-size:12px;font-weight:600;outline:none;cursor:pointer;transition:all .15s;width:100%" onchange="onRegTypeChange(this)">
+                <option value="MCP">MCP</option>
+                <option value="WEBAPP">WEBAPP</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>이름 <span style="font-weight:400;opacity:.6">(선택)</span></label>
+              <input type="text" id="reg-name" placeholder="자동 추출">
+            </div>
+          </div>
+          <button class="btn btn-primary" id="reg-btn" onclick="registerServer()" style="width:100%;justify-content:center">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+            등록
+          </button>
+          <div class="reg-hint" style="margin-top:8px">
+            <strong>서버 생성</strong>에서 인프라를 프로비저닝하면 URL이 자동으로 채워집니다.
+          </div>
         </div>
-        <div class="field">
-          <label>이름 <span style="font-weight:400;opacity:.6">(선택)</span></label>
-          <input type="text" id="reg-name" placeholder="자동 추출">
+      </div>
+      <!-- 오른쪽: 핸드셰이킹 단계 -->
+      <div>
+        <div class="step-card">
+          <div class="step-card-header">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <div class="step-card-title">핸드셰이킹 진행 상황</div>
+            <div id="reg-overall-status" style="margin-left:auto;font-size:11px;color:var(--muted)">대기 중</div>
+          </div>
+          <div id="reg-step-list" style="padding:8px 0"></div>
         </div>
-      </div>
-      <button class="btn btn-primary" id="reg-btn" onclick="registerServer()" style="width:100%;justify-content:center">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-        등록
-      </button>
-
-      <!-- 핸드셰이킹 단계 -->
-      <div id="reg-steps" style="display:none;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:4px">
-        <div style="padding:10px 14px 6px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);background:var(--surface2)">핸드셰이킹</div>
-        <div id="reg-step-list" style="padding:6px 0"></div>
-      </div>
-
-      <div class="reg-hint" style="margin-top:0">
-        <strong>서버 생성</strong>에서 인프라를 프로비저닝하면 URL이 자동으로 채워집니다.
       </div>
     </div>
   </div>
@@ -868,8 +877,8 @@ async function registerServer() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spin">↻</span> 등록 중...';
 
-  const stepsEl = document.getElementById('reg-steps');
-  stepsEl.style.display = 'block';
+  const overallEl = document.getElementById('reg-overall-status');
+  if (overallEl) { overallEl.textContent = '진행 중...'; overallEl.style.color = 'var(--blue)'; }
   const stepStatuses = {};
   renderRegSteps(stepStatuses);
 
@@ -910,6 +919,7 @@ async function registerServer() {
             renderRegSteps(stepStatuses);
           } else if (currentEvent === 'complete') {
             const ok = data.status === 'ACTIVE';
+            if (overallEl) { overallEl.textContent = ok ? '완료' : '실패'; overallEl.style.color = ok ? 'var(--green)' : 'var(--red)'; }
             toast(ok ? '등록 완료' : '등록 실패', `${data.name} — ${data.status}`, ok ? 'ok' : 'err');
             if (ok) {
               document.getElementById('reg-url').value = '';
@@ -929,8 +939,7 @@ async function registerServer() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> 등록';
-    // 실패 시 steps 유지, 성공 후엔 drawer가 닫히므로 리셋만
-    setTimeout(() => { stepsEl.style.display = 'none'; renderRegSteps({}); }, 3000);
+    // 실패 시 steps 유지 (오른쪽 패널에 그대로 표시)
   }
 }
 
