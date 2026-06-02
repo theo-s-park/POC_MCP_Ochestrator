@@ -44,21 +44,21 @@ public class McpAppService {
             .toList();
     }
 
-    public List<McpAppPublicView> findAllPublic() {
+    public List<McpAppView> findAllPublic() {
         Map<String, McpServerRecord> serverMap = serverMap();
         return mcpAppRepository.findAll().stream()
             .filter(McpAppEntity::isVisible)
-            .map(app -> McpAppPublicView.of(app,
+            .map(app -> McpAppView.of(app,
                 serverMap.get(app.getMcpServerId()),
-                mcpToolAppRepository.findByMcpAppId(app.getId())))
+                mcpToolAppRepository.findByMcpAppId(app.getId()), true))
             .toList();
     }
 
-    public McpAppPublicView findById(String id) {
+    public McpAppView findById(String id) {
         McpAppEntity app = mcpAppRepository.findById(id)
             .orElseThrow(AppNotFoundException::new);
         McpServerRecord server = serverMap().get(app.getMcpServerId());
-        return McpAppPublicView.of(app, server, mcpToolAppRepository.findByMcpAppId(app.getId()));
+        return McpAppView.of(app, server, mcpToolAppRepository.findByMcpAppId(app.getId()));
     }
 
     @Transactional

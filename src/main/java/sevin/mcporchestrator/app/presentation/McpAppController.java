@@ -23,18 +23,20 @@ public class McpAppController {
         this.service = service;
     }
 
+    /** ADMIN 전용 — 전체 앱 목록 (모든 tool, visible 무관) */
     @GetMapping
     public ResponseEntity<List<McpAppView>> list() {
         return ResponseEntity.ok(service.findAll());
     }
 
+    /** Public — visible 앱 + visible tool만 반환, 구조는 /apps와 동일 */
     @GetMapping("/public")
-    public ResponseEntity<List<McpAppPublicView>> listPublic() {
+    public ResponseEntity<List<McpAppView>> listPublic() {
         return ResponseEntity.ok(service.findAllPublic());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<McpAppPublicView> getOne(@PathVariable String id) {
+    public ResponseEntity<McpAppView> getOne(@PathVariable String id) {
         return ResponseEntity.ok(service.findById(id));
     }
 

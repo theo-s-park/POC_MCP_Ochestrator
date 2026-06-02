@@ -26,23 +26,28 @@ public class SecurityConfig {
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     /**
-     * 쓰기(등록·삭제·수정·생성) API → ADMIN 전용
-     * 읽기(조회) API 및 화면 → permitAll
+     * Backoffice 화면 + 서버 관리 API → ADMIN 전용
+     * WebUI + /api/mcp/apps/public → 공개
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
+                // Backoffice 화면
+                .requestMatchers("/backoffice/**").hasRole("ADMIN")
                 // Lambda 인프라 생성/배포
                 .requestMatchers("/api/lambda/**").hasRole("ADMIN")
                 // 서버 등록·삭제·새로고침
                 .requestMatchers(HttpMethod.POST,   "/api/mcp/servers/register", "/api/mcp/servers/register-stream").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/mcp/servers/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST,   "/api/mcp/servers/*/refresh").hasRole("ADMIN")
+                // 앱 조회 — backoffice(전체) ADMIN, public만 허용
+                .requestMatchers(HttpMethod.GET, "/api/mcp/apps/public").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/mcp/apps/**").hasRole("ADMIN")
                 // 앱/툴 메타데이터 변경
                 .requestMatchers(HttpMethod.PATCH,  "/api/mcp/apps/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PATCH,  "/api/mcp/tools/**").hasRole("ADMIN")
-                // 나머지 (GET 조회, 화면, 로그인) 모두 공개
+                // 나머지 (WebUI, 로그인, OSS API 등) 공개
                 .anyRequest().permitAll()
             )
             .formLogin(form -> form
