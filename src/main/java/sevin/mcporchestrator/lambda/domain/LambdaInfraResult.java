@@ -6,5 +6,6 @@ public record LambdaInfraResult(
     String lambdaUrl,
     String ecrRepoUri,
     String s3BucketName,
-    String cloudFrontDomain
+    String cloudFrontDomain,
+    String mcpKey          // plaintext — 한 번만 표시, 이후 조회 불가
 ) {}

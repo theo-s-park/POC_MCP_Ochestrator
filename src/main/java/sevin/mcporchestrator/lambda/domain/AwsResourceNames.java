@@ -2,12 +2,22 @@ package sevin.mcporchestrator.lambda.domain;
 
 /**
  * Lambda 인프라 생성 시 사용할 AWS 리소스 이름 규칙.
- * functionName 하나로 ECR / S3 / CloudFront 이름을 일관되게 파생시킨다.
+ * input name 하나로 모든 리소스 이름을 일관되게 파생시킨다.
+ *
+ * 예) input "aspyn-test" →
+ *   Lambda:     aspyn-test-lambda
+ *   ECR:        aspyn-test-ecr
+ *   S3:         aspyn-test-cf-files-{accountId}
+ *   CloudFront: description "aspyn-test-cf"
  */
 public record AwsResourceNames(String functionName, String accountId, String region) {
 
+    public String lambdaFunctionName() {
+        return functionName + "-lambda";
+    }
+
     public String ecrRepoName() {
-        return "lambda/" + functionName;
+        return functionName + "-ecr";
     }
 
     public String ecrImageUri() {
@@ -19,11 +29,15 @@ public record AwsResourceNames(String functionName, String accountId, String reg
      * AWS 규칙: 3-63자, 소문자+숫자+하이픈만 허용.
      */
     public String s3BucketName() {
-        String raw = (functionName + "-files-" + accountId)
+        String raw = (functionName + "-cf-files-" + accountId)
             .toLowerCase()
             .replaceAll("[^a-z0-9-]", "-")
             .replaceAll("-{2,}", "-");
         return raw.length() > 63 ? raw.substring(0, 63) : raw;
+    }
+
+    public String cloudFrontDescription() {
+        return functionName + "-cf";
     }
 
     /**

@@ -129,6 +129,31 @@ public class McpServerRegistry {
         });
     }
 
+    /**
+     * Lambda 인프라 생성 시 서버 레코드를 즉시 등록한다.
+     * 이미 URL로 등록된 서버가 있으면 키만 업데이트하고 기존 레코드를 재사용한다.
+     */
+    public void registerLambdaServer(String functionName, String lambdaUrl, String mcpKeyEncrypted) {
+        String serverId = findByUrl(lambdaUrl)
+            .map(McpServerRecord::getServerId)
+            .orElse(java.util.UUID.randomUUID().toString());
+
+        McpServerRecord record = McpServerRecord.builder()
+            .serverId(serverId)
+            .name(functionName)
+            .url(lambdaUrl)
+            .type(sevin.mcporchestrator.server.domain.ServerType.MCP)
+            .status(sevin.mcporchestrator.server.domain.ServerStatus.PENDING)
+            .registeredAt(java.time.Instant.now())
+            .healthCheckFailures(0)
+            .mcpKeyEncrypted(mcpKeyEncrypted)
+            .build();
+
+        servers.put(serverId, record);
+        repository.save(toEntity(record));
+        log.info("[Registry] Lambda server pre-registered: {} ({})", functionName, serverId);
+    }
+
     private McpServerEntity toEntity(McpServerRecord record) {
         return McpServerEntity.builder()
             .serverId(record.getServerId())
@@ -144,6 +169,7 @@ public class McpServerRegistry {
             .healthCheckFailures(record.getHealthCheckFailures())
             .webAppUrl(record.getWebAppUrl())
             .webHealthOk(record.getWebHealthOk())
+            .mcpKeyEncrypted(record.getMcpKeyEncrypted())
             .build();
     }
 
@@ -162,6 +188,7 @@ public class McpServerRegistry {
             .healthCheckFailures(entity.getHealthCheckFailures())
             .webAppUrl(entity.getWebAppUrl())
             .webHealthOk(entity.getWebHealthOk())
+            .mcpKeyEncrypted(entity.getMcpKeyEncrypted())
             .build();
     }
 

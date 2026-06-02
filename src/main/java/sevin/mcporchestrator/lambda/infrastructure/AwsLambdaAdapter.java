@@ -7,10 +7,13 @@ import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.AddPermissionRequest;
 import software.amazon.awssdk.services.lambda.model.CreateFunctionRequest;
 import software.amazon.awssdk.services.lambda.model.CreateFunctionUrlConfigRequest;
+import software.amazon.awssdk.services.lambda.model.Environment;
 import software.amazon.awssdk.services.lambda.model.FunctionCode;
 import software.amazon.awssdk.services.lambda.model.FunctionUrlAuthType;
 import software.amazon.awssdk.services.lambda.model.PackageType;
 import software.amazon.awssdk.services.lambda.model.UpdateFunctionCodeRequest;
+
+import java.util.Map;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -31,6 +34,11 @@ public class AwsLambdaAdapter {
      */
     public String createFunction(String functionName, String imageUri, String roleArn,
                                  int timeoutSeconds, int memorySizeMb) {
+        return createFunction(functionName, imageUri, roleArn, timeoutSeconds, memorySizeMb, Map.of());
+    }
+
+    public String createFunction(String functionName, String imageUri, String roleArn,
+                                 int timeoutSeconds, int memorySizeMb, Map<String, String> envVars) {
         var response = lambdaClient.createFunction(CreateFunctionRequest.builder()
             .functionName(functionName)
             .packageType(PackageType.IMAGE)
@@ -40,6 +48,7 @@ public class AwsLambdaAdapter {
             .role(roleArn)
             .timeout(timeoutSeconds)
             .memorySize(memorySizeMb)
+            .environment(envVars.isEmpty() ? null : Environment.builder().variables(envVars).build())
             .build());
 
         String arn = response.functionArn();

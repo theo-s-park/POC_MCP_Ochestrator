@@ -37,4 +37,7 @@ public class McpServerEntity {
     private int healthCheckFailures;
     private String webAppUrl;
     private Boolean webHealthOk;
+
+    @Column(columnDefinition = "TEXT")
+    private String mcpKeyEncrypted;
 }

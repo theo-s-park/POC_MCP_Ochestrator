@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
+import sevin.mcporchestrator.lambda.application.McpKeyService;
 import sevin.mcporchestrator.server.application.McpServerRecord;
 import sevin.mcporchestrator.server.domain.McpTool;
 import sevin.mcporchestrator.server.domain.ServerStatus;
@@ -28,11 +29,13 @@ public class McpProxyController {
     private static final Logger log = LoggerFactory.getLogger(McpProxyController.class);
 
     private final McpServerRegistry registry;
+    private final McpKeyService mcpKeyService;
     private final ObjectMapper objectMapper;
     private final RestClient restClient;
 
-    public McpProxyController(McpServerRegistry registry, ObjectMapper objectMapper) {
+    public McpProxyController(McpServerRegistry registry, McpKeyService mcpKeyService, ObjectMapper objectMapper) {
         this.registry = registry;
+        this.mcpKeyService = mcpKeyService;
         this.objectMapper = objectMapper;
         this.restClient = RestClient.builder()
             .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory())
@@ -119,10 +122,14 @@ public class McpProxyController {
                     "method", "tools/call",
                     "params", Map.of("name", toolName, "arguments", arguments)
                 );
-                responseBody = restClient.post()
+                var spec = restClient.post()
                     .uri(server.getUrl() + "/mcp")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(objectMapper.writeValueAsString(req))
+                    .contentType(MediaType.APPLICATION_JSON);
+                if (server.getMcpKeyEncrypted() != null) {
+                    try { spec = spec.header("X-MCP-KEY", mcpKeyService.decrypt(server.getMcpKeyEncrypted())); }
+                    catch (Exception ignored) {}
+                }
+                responseBody = spec.body(objectMapper.writeValueAsString(req))
                     .retrieve()
                     .body(String.class);
                 return objectMapper.readTree(responseBody);

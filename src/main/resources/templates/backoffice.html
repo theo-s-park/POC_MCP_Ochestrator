@@ -395,11 +395,20 @@ body::before {
             <!-- JS로 렌더링 -->
           </div>
           <div class="complete-banner" id="lm-complete-banner">
-            <div>
-              <div style="font-size:13px;font-weight:600;color:var(--green)">모든 리소스 생성 완료</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:2px">ECR에 이미지를 push한 뒤 서버를 등록하세요</div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px">모든 리소스 생성 완료</div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:8px">ECR에 이미지를 push한 뒤 배포하세요</div>
+              <div style="background:var(--surface);border:1px solid rgba(22,163,74,.2);border-radius:6px;padding:8px 12px">
+                <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">
+                  ⚠ X-MCP-KEY — 지금만 표시됩니다. 반드시 복사하세요.
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <code id="lm-mcp-key" style="font-family:var(--font-mono);font-size:11px;color:var(--text);word-break:break-all;flex:1"></code>
+                  <button class="copy-btn" onclick="copyUrl(document.getElementById('lm-mcp-key').textContent)">복사</button>
+                </div>
+              </div>
             </div>
-            <button class="btn btn-ghost complete-banner-action" onclick="goToRegisterWithUrl()">
+            <button class="btn btn-ghost complete-banner-action" onclick="goToRegisterWithUrl()" style="align-self:flex-start">
               등록하러 가기 →
             </button>
           </div>
@@ -868,12 +877,12 @@ function switchTab(name) {
 
 /* ── Lambda creation — step definitions ── */
 const STEPS = [
-  { id: 'ECR',        label: 'ECR 리포지토리',       desc: '컨테이너 이미지 저장소 생성' },
+  { id: 'ECR',        label: 'ECR 리포지토리',       desc: '{name}-ecr 리포지토리 생성' },
   { id: 'PUSH',       label: 'Placeholder 이미지',   desc: 'ECR에 베이스 이미지 push (수분 소요)' },
-  { id: 'LAMBDA',     label: 'Lambda 함수',          desc: 'ECR 이미지로 함수 생성 (1~2분 소요)' },
+  { id: 'LAMBDA',     label: 'Lambda 함수',          desc: '{name}-lambda 함수 생성 (1~2분 소요)' },
   { id: 'URL',        label: 'Function URL',         desc: 'HTTPS 엔드포인트 활성화' },
-  { id: 'S3',         label: 'S3 버킷',              desc: '파일 스토리지 버킷 생성' },
-  { id: 'CLOUDFRONT', label: 'CloudFront 배포',      desc: 'CDN 배포 생성 (수십 초 소요)' },
+  { id: 'S3',         label: 'S3 버킷',              desc: '{name}-cf-files 버킷 생성' },
+  { id: 'CLOUDFRONT', label: 'CloudFront 배포',      desc: '{name}-cf 배포 생성 (수십 초 소요)' },
 ];
 let _lastResult = null;
 
@@ -984,6 +993,7 @@ async function createLambdaInfra() {
             _lastResult = data;
             overall.textContent = '완료';
             overall.style.color = 'var(--green)';
+            if (data.mcpKey) document.getElementById('lm-mcp-key').textContent = data.mcpKey;
             banner.classList.add('show');
             toast('인프라 생성 완료 🎉', name, 'ok', 6000);
           } else if (currentEvent === 'error') {

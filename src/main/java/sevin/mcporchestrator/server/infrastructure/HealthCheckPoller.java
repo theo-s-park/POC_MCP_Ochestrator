@@ -6,6 +6,7 @@ import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import sevin.mcporchestrator.lambda.application.McpKeyService;
 import sevin.mcporchestrator.server.application.McpServerRecord;
 import sevin.mcporchestrator.server.domain.ServerStatus;
 import sevin.mcporchestrator.server.domain.ServerType;
@@ -18,11 +19,13 @@ public class HealthCheckPoller {
     private static final int MAX_FAILURES = 3;
 
     private final McpServerRegistry registry;
+    private final McpKeyService mcpKeyService;
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
-    public HealthCheckPoller(McpServerRegistry registry, ObjectMapper objectMapper) {
+    public HealthCheckPoller(McpServerRegistry registry, McpKeyService mcpKeyService, ObjectMapper objectMapper) {
         this.registry = registry;
+        this.mcpKeyService = mcpKeyService;
         this.objectMapper = objectMapper;
         this.restClient = RestClient.builder()
             .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory())
@@ -90,15 +93,30 @@ public class HealthCheckPoller {
     private void pingMcp(McpServerRecord server) throws Exception {
         log.info("[HealthCheck] → POST {}/mcp ping", server.getUrl());
         var req = java.util.Map.of("jsonrpc", "2.0", "id", 1, "method", "ping", "params", java.util.Map.of());
-        String body = restClient.post()
+        var spec = restClient.post()
             .uri(server.getUrl() + "/mcp")
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(objectMapper.writeValueAsString(req))
+            .contentType(MediaType.APPLICATION_JSON);
+        spec = withMcpKey(spec, server);
+        String body = spec.body(objectMapper.writeValueAsString(req))
             .retrieve()
             .body(String.class);
         tools.jackson.databind.JsonNode root = objectMapper.readTree(body);
         if (root == null || (!root.has("result") && !root.has("error")))
             throw new RuntimeException("invalid MCP ping response: " + body);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends org.springframework.web.client.RestClient.RequestBodySpec> T withMcpKey(
+            T spec, McpServerRecord server) {
+        if (server.getMcpKeyEncrypted() != null && !server.getMcpKeyEncrypted().isBlank()) {
+            try {
+                String key = mcpKeyService.decrypt(server.getMcpKeyEncrypted());
+                return (T) spec.header("X-MCP-KEY", key);
+            } catch (Exception e) {
+                log.warn("[HealthCheck] MCP key decrypt failed for {}: {}", server.getName(), e.getMessage());
+            }
+        }
+        return spec;
     }
 
 }

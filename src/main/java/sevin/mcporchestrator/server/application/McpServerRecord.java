@@ -27,4 +27,5 @@ public class McpServerRecord {
     private int healthCheckFailures;
     private String webAppUrl;
     private Boolean webHealthOk;
+    private String mcpKeyEncrypted;
 }

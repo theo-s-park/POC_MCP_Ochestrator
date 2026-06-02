@@ -55,7 +55,7 @@ server:
 
 admin:
   username: ${ADMIN_USERNAME:admin}
-  password: ${ADMIN_PASSWORD:}
+  password: ${ADMIN_PASSWORD:qkrtpqls12!}
 
 aws:
   region: ${AWS_REGION:ap-northeast-2}
@@ -68,6 +68,7 @@ mcp:
   orchestrator:
     health-check:
       interval: 20000
+    secret-key: ${MCP_SECRET_KEY:mcp-default-secret-key-change-me!!}
   oauth:
     # 실제 OAuth 서버 연동 시 아래 주석 해제 후 URL 설정
     # access-token-url: http://oauth-server/api/token/exchange

@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import sevin.mcporchestrator.lambda.application.McpKeyService;
+import sevin.mcporchestrator.server.application.McpServerRecord;
 import sevin.mcporchestrator.server.domain.McpResource;
 import sevin.mcporchestrator.server.domain.ServerType;
 import sevin.mcporchestrator.server.infrastructure.CollectResult;
@@ -24,13 +26,15 @@ public class ResourcesListCollector implements McpCapabilityCollector {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final McpServerRegistry registry;
+    private final McpKeyService mcpKeyService;
 
-    public ResourcesListCollector(McpServerRegistry registry, ObjectMapper objectMapper) {
+    public ResourcesListCollector(McpServerRegistry registry, McpKeyService mcpKeyService, ObjectMapper objectMapper) {
         this.restClient = RestClient.builder()
             .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory())
             .build();
         this.objectMapper = objectMapper;
         this.registry = registry;
+        this.mcpKeyService = mcpKeyService;
     }
 
     @Override
@@ -59,10 +63,15 @@ public class ResourcesListCollector implements McpCapabilityCollector {
                 "params", Map.of()
             );
 
-            String responseBody = restClient.post()
+            McpServerRecord server = registry.find(serverId).orElse(null);
+            var spec = restClient.post()
                 .uri(serverUrl + "/mcp")
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-                .body(objectMapper.writeValueAsString(request))
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            if (server != null && server.getMcpKeyEncrypted() != null) {
+                try { spec = spec.header("X-MCP-KEY", mcpKeyService.decrypt(server.getMcpKeyEncrypted())); }
+                catch (Exception ignored) {}
+            }
+            String responseBody = spec.body(objectMapper.writeValueAsString(request))
                 .retrieve()
                 .body(String.class);
 

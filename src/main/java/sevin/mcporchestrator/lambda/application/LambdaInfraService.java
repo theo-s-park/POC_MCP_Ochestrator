@@ -13,7 +13,10 @@ import sevin.mcporchestrator.lambda.infrastructure.AwsCloudFrontAdapter;
 import sevin.mcporchestrator.lambda.infrastructure.AwsEcrAdapter;
 import sevin.mcporchestrator.lambda.infrastructure.AwsLambdaAdapter;
 import sevin.mcporchestrator.lambda.infrastructure.AwsS3Adapter;
+import sevin.mcporchestrator.server.application.McpServerService;
+import sevin.mcporchestrator.server.infrastructure.McpServerRegistry;
 
+import java.util.Map;
 import java.util.function.Consumer;
 
 @Service
@@ -25,6 +28,9 @@ public class LambdaInfraService {
     private final AwsLambdaAdapter lambdaAdapter;
     private final AwsS3Adapter s3Adapter;
     private final AwsCloudFrontAdapter cloudFrontAdapter;
+    private final McpKeyService mcpKeyService;
+    private final McpServerRegistry registry;
+    private final McpServerService mcpServerService;
 
     private final String executionRoleArn;
     private final String region;
@@ -36,6 +42,9 @@ public class LambdaInfraService {
         AwsLambdaAdapter lambdaAdapter,
         AwsS3Adapter s3Adapter,
         AwsCloudFrontAdapter cloudFrontAdapter,
+        McpKeyService mcpKeyService,
+        McpServerRegistry registry,
+        McpServerService mcpServerService,
         @Value("${aws.lambda.execution-role-arn:}") String executionRoleArn,
         @Value("${aws.region:ap-northeast-2}") String region,
         @Value("${aws.lambda.timeout:30}") int timeout,
@@ -45,6 +54,9 @@ public class LambdaInfraService {
         this.lambdaAdapter = lambdaAdapter;
         this.s3Adapter = s3Adapter;
         this.cloudFrontAdapter = cloudFrontAdapter;
+        this.mcpKeyService = mcpKeyService;
+        this.registry = registry;
+        this.mcpServerService = mcpServerService;
         this.executionRoleArn = executionRoleArn;
         this.region = region;
         this.timeout = timeout;
@@ -60,14 +72,14 @@ public class LambdaInfraService {
     /**
      * 전체 Lambda 인프라를 순서대로 생성한다.
      *
-     * 1. ECR 리포지토리 생성
-     * 2. placeholder 이미지를 ECR에 push (Docker) → Lambda shell 즉시 생성 가능하게
-     * 3. Lambda 함수 생성 (ECR 이미지 기반)
-     * 4. Function URL 활성화
-     * 5. S3 버킷 생성
-     * 6. CloudFront 배포 생성
-     *
-     * 이후 개발자가 실제 이미지를 ECR에 push하면 updateCode()로 Lambda 코드를 교체한다.
+     * 1. API Key 생성 → Lambda env var(MCP_SERVER_KEY) 주입
+     * 2. ECR 리포지토리 생성
+     * 3. placeholder 이미지 ECR push (Docker)
+     * 4. Lambda 함수 생성 (MCP_SERVER_KEY 포함)
+     * 5. Function URL 활성화
+     * 6. S3 버킷 생성
+     * 7. CloudFront 배포 생성
+     * 8. DB에 서버 레코드 저장 (PENDING, 키 AES 암호화)
      */
     public LambdaInfraResult create(String functionName, LambdaRuntime runtime,
                                     Integer timeoutOverride, Integer memorySizeOverride,
@@ -82,7 +94,13 @@ public class LambdaInfraService {
 
         String accountId = AwsResourceNames.extractAccountId(executionRoleArn);
         AwsResourceNames names = new AwsResourceNames(functionName, accountId, region);
+        String lambdaName = names.lambdaFunctionName();  // aspyn-test-lambda
         String ecrImageUri = names.ecrImageUri();
+
+        // API Key 생성 (Lambda env var로 주입, DB엔 암호화해서 저장)
+        String mcpKey = mcpKeyService.generateKey();
+        String mcpKeyEncrypted = mcpKeyService.encrypt(mcpKey);
+        Map<String, String> envVars = Map.of("MCP_SERVER_KEY", mcpKey);
 
         log.info("[LambdaInfra] provisioning: {} runtime={} (account={}, region={})",
             functionName, effectiveRuntime, accountId, region);
@@ -97,14 +115,14 @@ public class LambdaInfraService {
             return ecrImageUri + " (placeholder)";
         });
 
-        // 3. Lambda 함수 생성
+        // 3. Lambda 함수 생성 (MCP_SERVER_KEY env var 포함)
         String functionArn = step("LAMBDA", onStep,
-            () -> lambdaAdapter.createFunction(functionName, ecrImageUri,
-                executionRoleArn, effectiveTimeout, effectiveMemory));
+            () -> lambdaAdapter.createFunction(lambdaName, ecrImageUri,
+                executionRoleArn, effectiveTimeout, effectiveMemory, envVars));
 
         // 4. Function URL 활성화
         String lambdaUrl = step("URL", onStep,
-            () -> lambdaAdapter.enableFunctionUrl(functionName));
+            () -> lambdaAdapter.enableFunctionUrl(lambdaName));
 
         // 5. S3 버킷 생성
         String s3BucketName = step("S3", onStep,
@@ -112,21 +130,37 @@ public class LambdaInfraService {
 
         // 6. CloudFront 배포 생성
         String cloudFrontDomain = step("CLOUDFRONT", onStep,
-            () -> cloudFrontAdapter.createDistribution(s3BucketName, functionName));
+            () -> cloudFrontAdapter.createDistribution(s3BucketName, names.cloudFrontDescription()));
+
+        // 7. DB에 서버 레코드 선등록 (PENDING, 암호화된 키 포함)
+        registry.registerLambdaServer(lambdaName, lambdaUrl, mcpKeyEncrypted);
 
         log.info("[LambdaInfra] provisioning complete: {}", functionName);
 
         return new LambdaInfraResult(functionName, functionArn, lambdaUrl,
-            ecrRepoUri, s3BucketName, cloudFrontDomain);
+            ecrRepoUri, s3BucketName, cloudFrontDomain, mcpKey);
     }
 
     /**
-     * Lambda 함수 코드를 ECR 최신 이미지로 업데이트한다.
+     * Lambda 함수 코드를 ECR 최신 이미지로 업데이트하고 핸드셰이킹을 트리거한다.
      * 개발자가 실제 이미지를 ECR에 push한 뒤 호출한다.
+     * 핸드셰이킹(ping → tools/list → resources/list) 시 X-MCP-KEY 헤더가 자동으로 포함된다.
      */
     public void updateCode(String functionName, String imageUri, Consumer<LambdaInfraStep> onStep) {
         step("UPDATE", onStep,
             () -> lambdaAdapter.updateFunctionCode(functionName, imageUri));
+
+        // 코드 업데이트 후 핸드셰이킹 트리거 — Lambda URL로 서버 조회 후 refresh
+        step("HANDSHAKE", onStep, () -> {
+            registry.findAll().stream()
+                .filter(s -> s.getName().equals(functionName))
+                .findFirst()
+                .ifPresent(s -> {
+                    log.info("[LambdaInfra] triggering handshake for {} ({})", functionName, s.getServerId());
+                    mcpServerService.refresh(s.getServerId());
+                });
+            return "핸드셰이킹 완료";
+        });
     }
 
     private String step(String name, Consumer<LambdaInfraStep> onStep, StepAction action) {
