@@ -80,6 +80,7 @@ public class McpAppService {
                 mcpToolAppRepository.findByMcpAppIdAndToolName(id, toolName).ifPresent(toolApp -> {
                     if (toolUpdate.getDisplayName() != null)  toolApp.setDisplayName(toolUpdate.getDisplayName());
                     if (toolUpdate.getDescription() != null)  toolApp.setDescription(toolUpdate.getDescription());
+                    if (toolUpdate.getThumbnail() != null)    toolApp.setThumbnail(toolUpdate.getThumbnail());
                     if (toolUpdate.getServiceType() != null)  toolApp.setServiceType(toolUpdate.getServiceType());
                     if (toolUpdate.getDeductCredit() != null) toolApp.setDeductCredit(toolUpdate.getDeductCredit());
                     if (toolUpdate.getVisible() != null)      toolApp.setVisible(toolUpdate.getVisible());

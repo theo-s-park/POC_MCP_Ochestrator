@@ -532,7 +532,8 @@ async function load() {
     el.innerHTML = `<div class="empty-state"><div class="empty-title">No apps registered</div><div style="font-size:12px;margin-top:4px">MCP 서버를 먼저 등록해주세요.</div></div>`;
     return;
   }
-  el.innerHTML = apps.map(app => renderApp(app)).join('');
+  const categories = [...new Set(apps.map(a => a.category).filter(Boolean))];
+  el.innerHTML = apps.map(app => renderApp(app, categories)).join('');
 }
 
 function renderServiceTypeOptions(selected) {
@@ -599,7 +600,7 @@ function onToolServiceTypeChange(appId, toolName) {
   sel.style.background = st ? 'var(--green-d)' : '';
 }
 
-function renderApp(app) {
+function renderApp(app, categories = []) {
   const st = (app.serverStatus || '').toLowerCase();
   const isActive = st === 'active';
   const isPending = st === 'pending';
@@ -637,7 +638,11 @@ function renderApp(app) {
       </div>
       <div class="field">
         <label>Category</label>
-        <input type="text" id="${app.id}-category" value="${app.category || ''}" placeholder="예: 문서, 검색, 개발">
+        <input type="text" id="${app.id}-category" value="${app.category || ''}"
+               list="${app.id}-category-list" placeholder="선택하거나 새로 입력">
+        <datalist id="${app.id}-category-list">
+          ${categories.map(c => `<option value="${esc(c)}">`).join('')}
+        </datalist>
       </div>
       <div class="field">
         <label>Thumbnail URL</label>

@@ -20,6 +20,7 @@ public class McpAppUpdateRequest {
     public static class ToolUpdate {
         private String displayName;
         private String description;
+        private String thumbnail;
         private String serviceType;
         private Integer deductCredit;
         private Boolean visible;
