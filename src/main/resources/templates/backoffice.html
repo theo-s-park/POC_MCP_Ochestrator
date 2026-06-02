@@ -81,14 +81,19 @@ body::before {
 .field select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:30px; cursor:pointer; }
 .credit-display { font-size:12px; color:var(--muted); margin-top:4px; font-family:var(--font-mono); }
 .tools-section { padding:0 20px 16px; }
-.tools-section-title { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
-.tool-row { display:grid; grid-template-columns:1fr 200px auto; align-items:center; gap:10px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; margin-bottom:6px; transition:border-color .15s; }
-.tool-row:hover { border-color:var(--border-hi); }
-.tool-row select { appearance:none; background:var(--surface2); background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; border:1px solid var(--border); border-radius:6px; padding:7px 28px 7px 10px; color:var(--text); font-family:var(--font-body); font-size:12px; outline:none; cursor:pointer; transition:all .15s; width:100%; }
-.tool-row select:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-d); }
-.tool-row select:not([value=""]):valid { border-color:var(--green); background-color:var(--green-d); }
-.tool-name { font-family:var(--font-mono); font-size:12px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tools-section-title { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px; }
+.tool-card { background:var(--surface2); border:1px solid var(--border); border-radius:9px; margin-bottom:10px; overflow:hidden; transition:border-color .15s; }
+.tool-card:hover { border-color:var(--border-hi); }
+.tool-card-head { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); background:var(--surface); }
+.tool-card-name { font-family:var(--font-mono); font-size:12px; font-weight:600; color:var(--text); flex:1; }
+.tool-card-credit { font-size:11px; color:var(--muted); font-family:var(--font-mono); }
+.tool-card-body { padding:12px 14px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.tool-card-body .field { margin:0; }
+.tool-card-body .field.full { grid-column:1/-1; }
+.tool-card-row { display:flex; align-items:center; gap:10px; padding:8px 14px; border-top:1px solid var(--border); background:var(--surface); }
+.tool-name { font-family:var(--font-mono); font-size:12px; color:var(--text); }
 .tool-credit-info { font-size:11px; color:var(--muted); font-family:var(--font-mono); margin-top:2px; }
+.tool-card select { appearance:none; background:var(--surface); background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; border:1px solid var(--border); border-radius:6px; padding:7px 28px 7px 10px; color:var(--text); font-family:var(--font-body); font-size:12px; outline:none; cursor:pointer; transition:all .15s; }
 .field textarea { resize:vertical; min-height:72px; }
 .toggle-row { display:flex; align-items:center; gap:10px; }
 .toggle { position:relative; width:36px; height:20px; }
@@ -548,30 +553,36 @@ function renderServiceTypeOptions(selected) {
 function renderToolRows(appId, tools) {
   if (!tools || !tools.length) return '';
   return tools.map(t => `
-    <div class="tool-row" style="flex-direction:column;align-items:stretch;gap:8px;padding:12px 14px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="flex:1">
-          <div class="tool-name">${t.toolName}</div>
-          <div class="tool-credit-info" id="${appId}-${t.toolName}-creditInfo">${t.serviceType ? `${t.serviceType} · ${t.deductCredit}cr` : '— not set —'}</div>
-        </div>
-        <select id="${appId}-${t.toolName}-st" onchange="onToolServiceTypeChange('${appId}','${t.toolName}')" style="width:180px">
-          <option value="">— 선택 안 함 —</option>
-          ${renderServiceTypeOptions(t.serviceType)}
-        </select>
-        <label class="toggle" title="노출 여부 (하위)">
+    <div class="tool-card">
+      <div class="tool-card-head">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+        <span class="tool-card-name">${esc(t.toolName)}</span>
+        <span class="tool-card-credit" id="${appId}-${t.toolName}-creditInfo">${t.serviceType ? `${t.serviceType} · ${t.deductCredit}cr` : '— not set —'}</span>
+        <label class="toggle" title="하위 노출 여부" style="margin-left:8px">
           <input type="checkbox" id="${appId}-${t.toolName}-vis" ${t.visible !== false ? 'checked' : ''}>
           <span class="toggle-slider"></span>
         </label>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="field" style="margin:0">
+      <div class="tool-card-body">
+        <div class="field">
           <label>표시 이름</label>
-          <input type="text" id="${appId}-${t.toolName}-displayName" value="${esc(t.displayName||'')}" placeholder="${t.toolName}">
+          <input type="text" id="${appId}-${t.toolName}-displayName" value="${esc(t.displayName||'')}" placeholder="${esc(t.toolName)}">
         </div>
-        <div class="field" style="margin:0">
+        <div class="field">
+          <label>노출 이미지 URL</label>
+          <input type="text" id="${appId}-${t.toolName}-thumbnail" value="${esc(t.thumbnail||'')}" placeholder="https://...">
+        </div>
+        <div class="field full">
           <label>설명</label>
-          <input type="text" id="${appId}-${t.toolName}-desc" value="${esc(t.description||'')}" placeholder="툴 설명">
+          <textarea id="${appId}-${t.toolName}-desc" placeholder="툴 설명" style="min-height:56px">${esc(t.description||'')}</textarea>
         </div>
+      </div>
+      <div class="tool-card-row">
+        <span style="font-size:11px;color:var(--muted);margin-right:4px">서비스 타입</span>
+        <select id="${appId}-${t.toolName}-st" onchange="onToolServiceTypeChange('${appId}','${t.toolName}')" style="flex:1;max-width:240px">
+          <option value="">— 선택 안 함 —</option>
+          ${renderServiceTypeOptions(t.serviceType)}
+        </select>
       </div>
     </div>`).join('');
 }
@@ -695,10 +706,12 @@ async function save(id, tools) {
     const dn   = document.getElementById(`${id}-${t.toolName}-displayName`);
     const desc = document.getElementById(`${id}-${t.toolName}-desc`);
     if (!sel) return;
-    const opt = sel.selectedOptions[0];
+    const opt  = sel.selectedOptions[0];
+    const thumb = document.getElementById(`${id}-${t.toolName}-thumbnail`);
     toolsMap[t.toolName] = {
-      displayName:  dn   ? (dn.value || null)   : null,
-      description:  desc ? (desc.value || null)  : null,
+      displayName:  dn    ? (dn.value || null)    : null,
+      description:  desc  ? (desc.value || null)  : null,
+      thumbnail:    thumb ? (thumb.value || null)  : null,
       serviceType:  sel.value || null,
       deductCredit: opt && opt.dataset.credit ? parseInt(opt.dataset.credit) : 0,
       visible:      vis ? vis.checked : true,
