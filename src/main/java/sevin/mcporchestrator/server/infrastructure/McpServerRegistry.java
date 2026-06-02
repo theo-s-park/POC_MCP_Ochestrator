@@ -134,14 +134,16 @@ public class McpServerRegistry {
      * 이미 URL로 등록된 서버가 있으면 키만 업데이트하고 기존 레코드를 재사용한다.
      */
     public void registerLambdaServer(String functionName, String lambdaUrl, String mcpKeyEncrypted) {
-        String serverId = findByUrl(lambdaUrl)
+        String normalizedUrl = lambdaUrl != null && lambdaUrl.endsWith("/")
+            ? lambdaUrl.substring(0, lambdaUrl.length() - 1) : lambdaUrl;
+        String serverId = findByUrl(normalizedUrl)
             .map(McpServerRecord::getServerId)
             .orElse(java.util.UUID.randomUUID().toString());
 
         McpServerRecord record = McpServerRecord.builder()
             .serverId(serverId)
             .name(functionName)
-            .url(lambdaUrl)
+            .url(normalizedUrl)
             .type(sevin.mcporchestrator.server.domain.ServerType.MCP)
             .status(sevin.mcporchestrator.server.domain.ServerStatus.PENDING)
             .registeredAt(java.time.Instant.now())
